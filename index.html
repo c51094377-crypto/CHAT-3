@@ -144,21 +144,21 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 異ネットワーク(別Wi-Fi)対応・STUN設定済み
+                        ⚡ ネットワーク自動対応・STUN設定済み
                     </div>
                 </div>
             </div>
 
             <!-- Custom Original Sticker Panel -->
             <div id="sticker-panel" class="bg-slate-900 border-t border-slate-700 p-3 hidden grid grid-cols-2 sm:grid-cols-4 gap-2 shadow-2xl z-20">
-                <button onclick="sendSticker('OK')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">OK</button>
-                <button onclick="sendSticker('wat？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">wat？</button>
-                <button onclick="sendSticker('YES')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">YES</button>
-                <button onclick="sendSticker('お疲れ様ー')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">お疲れ様ー</button>
-                <button onclick="sendSticker('tea time')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">tea time</button>
-                <button onclick="sendSticker('thank you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">thank you</button>
-                <button onclick="sendSticker('')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ・∇・)ﾉﾔｱ</button>
-                <button onclick="sendSticker('لا أفهم ما تقوله حقاً.')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">لا أفهم ما تقوله حقاً.</button>
+                <button onclick="sendSticker('✨ ノート完了！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">✨ ノート完了！</button>
+                <button onclick="sendSticker('📚 宿題どこ？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">📚 宿題どこ？</button>
+                <button onclick="sendSticker('💡 ひらめいた！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">💡 ひらめいた！</button>
+                <button onclick="sendSticker('🚀 テストがんばろ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🚀 テストがんばろ</button>
+                <button onclick="sendSticker('☕ 休憩しよー')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">☕ 休憩しよー</button>
+                <button onclick="sendSticker('⭐ ありがとう！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">⭐ ありがとう！</button>
+                <button onclick="sendSticker('🤝 よろしく！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🤝 よろしく！</button>
+                <button onclick="sendSticker('🔥 やる気MAX')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🔥 やる気MAX</button>
             </div>
 
             <!-- Input Bar -->
@@ -213,7 +213,7 @@
         let connections = {}; 
         let incomingBuffers = {}; 
 
-        // 異なるWi-Fiやインターネット越しでも接続できるようにするためのSTUNサーバー設定
+        // STUNサーバー設定
         const peerConfig = {
             config: {
                 iceServers: [
@@ -343,34 +343,43 @@
         }
 
         function saveRoomToHistory(modeName, roomId) {
-            let history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
-            history = history.filter(item => item.roomId !== roomId);
-            history.unshift({ modeName, roomId, time: new Date().toLocaleDateString() });
-            if (history.length > 10) history.pop();
-            localStorage.setItem('nexus_room_history', JSON.stringify(history));
-            renderHistoryList();
+            try {
+                let history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
+                history = history.filter(item => item.roomId !== roomId);
+                history.unshift({ modeName, roomId, time: new Date().toLocaleDateString() });
+                if (history.length > 10) history.pop();
+                localStorage.setItem('nexus_room_history', JSON.stringify(history));
+                renderHistoryList();
+            } catch (e) {
+                console.error('履歴の保存に失敗しました', e);
+            }
         }
 
         function renderHistoryList() {
             const container = document.getElementById('history-list');
-            const history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
-            if (history.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">記録されたルームはありません</p>';
-                return;
+            if (!container) return;
+            try {
+                const history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
+                if (history.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">記録されたルームはありません</p>';
+                    return;
+                }
+                container.innerHTML = '';
+                history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-slate-800 hover:bg-slate-750 p-2.5 rounded-xl border border-slate-700 text-xs transition';
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-bold text-white">${item.modeName}</span>
+                            <span class="text-indigo-400 ml-1.5 tracking-wider">[${item.roomId}]</span>
+                        </div>
+                        <button onclick="reconnectRoom('${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">履歴の読み込みエラー</p>';
             }
-            container.innerHTML = '';
-            history.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center justify-between bg-slate-800 hover:bg-slate-750 p-2.5 rounded-xl border border-slate-700 text-xs transition';
-                div.innerHTML = `
-                    <div>
-                        <span class="font-bold text-white">${item.modeName}</span>
-                        <span class="text-indigo-400 ml-1.5 tracking-wider">[${item.roomId}]</span>
-                    </div>
-                    <button onclick="reconnectRoom('${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
-                `;
-                container.appendChild(div);
-            });
         }
 
         function clearHistory() {
@@ -391,7 +400,7 @@
 
         function initRoom(modeName, roomId) {
             if (peer) {
-                peer.destroy();
+                try { peer.destroy(); } catch(e){}
             }
             connections = {};
             incomingBuffers = {};
@@ -401,21 +410,21 @@
             saveRoomToHistory(modeName, roomId);
 
             document.getElementById('chat-room-title').innerText = `${modeName} (コード: ${currentRoomId})`;
-            document.getElementById('chat-room-subtitle').innerText = 'ホスト確認中...';
+            document.getElementById('chat-room-subtitle').innerText = '接続先を検索中...';
             document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span><span>接続確立中</span>';
 
             clearMessages();
             appendSystemMessage(`ルーム [コード: ${currentRoomId}] に接続を試みています...`);
 
-            const hostPeerId = `nexus_room_${roomId}_host`;
-            const myId = `nexus_room_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
+            const hostPeerId = `nexus_v2_${roomId}_host`;
+            const guestPeerId = `nexus_v2_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
 
-            // 異ネットワーク対応のSTUN設定を渡してPeerを作成
+            // まずホストとして接続を試みる
             peer = new Peer(hostPeerId, peerConfig);
 
             peer.on('open', (id) => {
                 document.getElementById('chat-room-subtitle').innerText = 'ホストとして待受中（参加者待ち）';
-                appendSystemMessage('ルームを作成しました。相手の接続を待っています...');
+                appendSystemMessage('ルームを作成しました。参加者を待っています...');
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>待受中</span>';
                 
                 peer.on('connection', (conn) => {
@@ -424,14 +433,14 @@
             });
 
             peer.on('error', (err) => {
+                // すでにホストが存在する場合はゲストとして参加を試みる
                 if (err.type === 'unavailable-id') {
-                    peer.destroy();
+                    try { peer.destroy(); } catch(e){}
                     
-                    // ゲスト側もSTUN設定を渡してPeerを作成
-                    peer = new Peer(myId, peerConfig);
+                    peer = new Peer(guestPeerId, peerConfig);
                     peer.on('open', () => {
-                        appendSystemMessage('ホストを発見しました。接続を確立しています...');
-                        const conn = peer.connect(hostPeerId);
+                        appendSystemMessage('ホストを発見しました。接続しています...');
+                        const conn = peer.connect(hostPeerId, { reliable: true });
                         setupConnection(conn);
                     });
 
@@ -468,6 +477,10 @@
                 updatePeerCount();
             });
 
+            conn.on('error', (err) => {
+                console.error('Connection error:', err);
+            });
+
             conn.on('data', (packet) => {
                 handleDataPacket(conn.peer, packet);
             });
@@ -480,7 +493,7 @@
 
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
-                if (peer && peer.id.includes('_host')) {
+                if (peer && peer.id && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_start') {
@@ -492,7 +505,7 @@
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks)
                 };
-                if (peer && peer.id.includes('_host')) {
+                if (peer && peer.id && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_data') {
@@ -507,7 +520,7 @@
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
-                if (peer && peer.id.includes('_host')) {
+                if (peer && peer.id && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             }
@@ -702,7 +715,9 @@
                 alert('アクティブなセッションはありません。');
             }
         }
+
         function escapeHtml(str) {
+            if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
     </script>
