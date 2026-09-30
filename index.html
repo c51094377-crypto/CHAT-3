@@ -144,7 +144,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ ネットワーク自動対応・STUN設定済み
+                        ⚡ 異種ネットワーク対応・STUN連携システム
                     </div>
                 </div>
             </div>
@@ -213,13 +213,12 @@
         let connections = {}; 
         let incomingBuffers = {}; 
 
-        // STUNサーバー設定
+        // 異なるネットワーク間（別Wi-Fiやモバイル回線など）でも接続できるようにSTUNサーバーを設定
         const peerConfig = {
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' }
                 ]
             }
         };
@@ -343,43 +342,34 @@
         }
 
         function saveRoomToHistory(modeName, roomId) {
-            try {
-                let history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
-                history = history.filter(item => item.roomId !== roomId);
-                history.unshift({ modeName, roomId, time: new Date().toLocaleDateString() });
-                if (history.length > 10) history.pop();
-                localStorage.setItem('nexus_room_history', JSON.stringify(history));
-                renderHistoryList();
-            } catch (e) {
-                console.error('履歴の保存に失敗しました', e);
-            }
+            let history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
+            history = history.filter(item => item.roomId !== roomId);
+            history.unshift({ modeName, roomId, time: new Date().toLocaleDateString() });
+            if (history.length > 10) history.pop();
+            localStorage.setItem('nexus_room_history', JSON.stringify(history));
+            renderHistoryList();
         }
 
         function renderHistoryList() {
             const container = document.getElementById('history-list');
-            if (!container) return;
-            try {
-                const history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
-                if (history.length === 0) {
-                    container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">記録されたルームはありません</p>';
-                    return;
-                }
-                container.innerHTML = '';
-                history.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between bg-slate-800 hover:bg-slate-750 p-2.5 rounded-xl border border-slate-700 text-xs transition';
-                    div.innerHTML = `
-                        <div>
-                            <span class="font-bold text-white">${item.modeName}</span>
-                            <span class="text-indigo-400 ml-1.5 tracking-wider">[${item.roomId}]</span>
-                        </div>
-                        <button onclick="reconnectRoom('${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
-                    `;
-                    container.appendChild(div);
-                });
-            } catch (e) {
-                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">履歴の読み込みエラー</p>';
+            const history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
+            if (history.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">記録されたルームはありません</p>';
+                return;
             }
+            container.innerHTML = '';
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-slate-800 hover:bg-slate-750 p-2.5 rounded-xl border border-slate-700 text-xs transition';
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-white">${item.modeName}</span>
+                        <span class="text-indigo-400 ml-1.5 tracking-wider">[${item.roomId}]</span>
+                    </div>
+                    <button onclick="reconnectRoom('${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
+                `;
+                container.appendChild(div);
+            });
         }
 
         function clearHistory() {
@@ -400,7 +390,7 @@
 
         function initRoom(modeName, roomId) {
             if (peer) {
-                try { peer.destroy(); } catch(e){}
+                peer.destroy();
             }
             connections = {};
             incomingBuffers = {};
@@ -410,21 +400,21 @@
             saveRoomToHistory(modeName, roomId);
 
             document.getElementById('chat-room-title').innerText = `${modeName} (コード: ${currentRoomId})`;
-            document.getElementById('chat-room-subtitle').innerText = '接続先を検索中...';
+            document.getElementById('chat-room-subtitle').innerText = 'ホスト確認中...';
             document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span><span>接続確立中</span>';
 
             clearMessages();
             appendSystemMessage(`ルーム [コード: ${currentRoomId}] に接続を試みています...`);
 
-            const hostPeerId = `nexus_v2_${roomId}_host`;
-            const guestPeerId = `nexus_v2_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
+            const hostPeerId = `nexus_room_${roomId}_host`;
+            const myId = `nexus_room_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
 
-            // まずホストとして接続を試みる
+            // STUNサーバー設定を適用したPeerインスタンスの作成
             peer = new Peer(hostPeerId, peerConfig);
 
             peer.on('open', (id) => {
                 document.getElementById('chat-room-subtitle').innerText = 'ホストとして待受中（参加者待ち）';
-                appendSystemMessage('ルームを作成しました。参加者を待っています...');
+                appendSystemMessage('ルームを作成しました。相手の接続を待っています...');
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>待受中</span>';
                 
                 peer.on('connection', (conn) => {
@@ -433,14 +423,14 @@
             });
 
             peer.on('error', (err) => {
-                // すでにホストが存在する場合はゲストとして参加を試みる
                 if (err.type === 'unavailable-id') {
-                    try { peer.destroy(); } catch(e){}
+                    peer.destroy();
                     
-                    peer = new Peer(guestPeerId, peerConfig);
+                    // ゲスト側もSTUN設定を適用
+                    peer = new Peer(myId, peerConfig);
                     peer.on('open', () => {
-                        appendSystemMessage('ホストを発見しました。接続しています...');
-                        const conn = peer.connect(hostPeerId, { reliable: true });
+                        appendSystemMessage('ホストを発見しました。接続を確立しています...');
+                        const conn = peer.connect(hostPeerId);
                         setupConnection(conn);
                     });
 
@@ -477,10 +467,6 @@
                 updatePeerCount();
             });
 
-            conn.on('error', (err) => {
-                console.error('Connection error:', err);
-            });
-
             conn.on('data', (packet) => {
                 handleDataPacket(conn.peer, packet);
             });
@@ -493,7 +479,7 @@
 
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
-                if (peer && peer.id && peer.id.includes('_host')) {
+                if (peer && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_start') {
@@ -505,7 +491,7 @@
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks)
                 };
-                if (peer && peer.id && peer.id.includes('_host')) {
+                if (peer && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_data') {
@@ -520,7 +506,7 @@
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
-                if (peer && peer.id && peer.id.includes('_host')) {
+                if (peer && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
             }
@@ -717,7 +703,6 @@
         }
 
         function escapeHtml(str) {
-            if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
     </script>
