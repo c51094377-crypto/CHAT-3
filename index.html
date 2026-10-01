@@ -255,7 +255,8 @@
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
                 ]
             }
         };
@@ -428,7 +429,12 @@
 
         function initRoom(modeName, roomId, modeType) {
             if (peer) {
-                peer.destroy();
+                try {
+                    peer.destroy();
+                } catch (e) {
+                    console.error(e);
+                }
+                peer = null;
             }
             stopVideoCall();
             connections = {};
@@ -506,13 +512,13 @@
 
                     peer.on('error', (subErr) => {
                         console.error(subErr);
-                        document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>接続エラー</span>';
-                        appendSystemMessage(`接続エラー: ${subErr.type}`);
+                        document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>接続エラー (network)</span>';
+                        appendSystemMessage(`ネットワークエラー: ${subErr.type}`);
                     });
                 } else {
                     console.error(err);
-                    document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>エラー</span>';
-                    appendSystemMessage(`エラー: ${err.type}`);
+                    document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>ネットワークエラー</span>';
+                    appendSystemMessage(`ネットワークエラー: ${err.type}`);
                 }
             });
         }
