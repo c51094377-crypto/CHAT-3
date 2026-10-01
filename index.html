@@ -47,7 +47,7 @@
     <!-- Top Power Warning Banner -->
     <div class="bg-red-950 border-b border-red-800 text-red-200 text-center py-1.5 text-xs font-bold tracking-wider animate-blink z-30 flex items-center justify-center space-x-2">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>電源を切れば通信は切断されます｡スクール空間の最大人数は3人です｡</span>
+        <span>電源を切れば通信は切断されます</span>
     </div>
 
     <!-- App Container -->
@@ -136,38 +136,49 @@
                         <p id="chat-room-subtitle" class="text-xs text-slate-400">コードを入力してセッションを開始してください</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                    <!-- Video Call Trigger Button -->
+                    <button onclick="toggleVideoCall()" id="btn-video-call" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow" title="テレビ通話を開始">
+                        <i class="fa-solid fa-video"></i><span class="hidden sm:inline">テレビ通話</span>
+                    </button>
                     <button onclick="showRoomInfo()" class="text-slate-400 hover:text-white p-2 transition"><i class="fa-solid fa-circle-info text-xl"></i></button>
                 </div>
+            </div>
+
+            <!-- Video Call Overlay / Container -->
+            <div id="video-container" class="bg-black border-b border-slate-800 p-2 hidden grid grid-cols-1 sm:grid-cols-2 gap-2 relative z-10">
+                <div class="relative bg-slate-900 rounded-xl overflow-hidden aspect-video border border-slate-700 flex items-center justify-center">
+                    <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                    <span class="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-[10px] px-2 py-0.5 rounded-md">あなた (内側カメラ)</span>
+                </div>
+                <div class="relative bg-slate-900 rounded-xl overflow-hidden aspect-video border border-slate-700 flex items-center justify-center">
+                    <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                    <span id="remote-video-label" class="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-[10px] px-2 py-0.5 rounded-md">相手の映像 (待機中...)</span>
+                </div>
+                <button onclick="toggleVideoCall()" class="absolute top-4 right-4 bg-red-600 hover:bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition z-20" title="通話を終了">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
             </div>
 
             <!-- Messages Container -->
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 自由入力スクール空間・個人分離システム
+                        ⚡ 自由入力・内側カメラリアルタイムテレビ通話対応システム
                     </div>
                 </div>
             </div>
 
             <!-- Custom Original Sticker Panel -->
             <div id="sticker-panel" class="bg-slate-900 border-t border-slate-700 p-3 hidden grid grid-cols-2 sm:grid-cols-4 gap-2 shadow-2xl z-20">
-                <button onclick="sendSticker('ゆっくりまったり〜')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">ゆっくりまったり〜</button>
-                <button onclick="sendSticker('( ´ ▽ ` )')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ´ ▽ ` )</button>
-                <button onclick="sendSticker('（╹◡╹）')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">（╹◡╹）</button>
-                <button onclick="sendSticker('(T ^ T)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(T ^ T)</button>
-                <button onclick="sendSticker('( ・∇・)ﾉ ﾔｱ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ・∇・)ﾉ ﾔｱ</button>
-                <button onclick="sendSticker('(・Д・)ノ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(・Д・)ノ</button>
-                <button onclick="sendSticker('ちょっと何言ってるか分かんない')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">何言ってるか分かんない</button>
-                <button onclick="sendSticker('ねぇ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">ねぇ</button>
-                <button onclick="sendSticker('HELLO')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">HELLO</button>
-                <button onclick="sendSticker('NO〜〜〜〜〜')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">NO〜〜〜〜〜</button>
-                <button onclick="sendSticker('OK')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">OK</button>
-                <button onclick="sendSticker('Good')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">Good</button>
-                <button onclick="sendSticker(' finish')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">finish</button>
-                <button onclick="sendSticker('thank you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">thank you</button>
-                <button onclick="sendSticker('See you again')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">See you agin</button>
-                <button onclick="sendSticker('See you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">see you</button>
+                <button onclick="sendSticker('✨ ノート完了！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">✨ ノート完了！</button>
+                <button onclick="sendSticker('📚 宿題どこ？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">📚 宿題どこ？</button>
+                <button onclick="sendSticker('💡 ひらめいた！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">💡 ひらめいた！</button>
+                <button onclick="sendSticker('🚀 テストがんばろ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🚀 テストがんばろ</button>
+                <button onclick="sendSticker('☕ 休憩しよー')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">☕ 休憩しよー</button>
+                <button onclick="sendSticker('⭐ ありがとう！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">⭐ ありがとう！</button>
+                <button onclick="sendSticker('🤝 よろしく！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🤝 よろしく！</button>
+                <button onclick="sendSticker('🔥 やる気MAX')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🔥 やる気MAX</button>
             </div>
 
             <!-- Input Bar -->
@@ -221,6 +232,11 @@
         let peer = null;
         let connections = {}; 
         let incomingBuffers = {}; 
+
+        // Video Call Variables
+        let localStream = null;
+        let activeCall = null;
+        let isVideoActive = false;
 
         const peerConfig = {
             config: {
@@ -401,6 +417,7 @@
             if (peer) {
                 peer.destroy();
             }
+            stopVideoCall();
             connections = {};
             incomingBuffers = {};
             currentRoomId = roomId;
@@ -430,6 +447,10 @@
                 peer.on('connection', (conn) => {
                     setupConnection(conn, modeType);
                 });
+
+                peer.on('call', (call) => {
+                    handleIncomingCall(call);
+                });
             });
 
             peer.on('error', (err) => {
@@ -441,10 +462,21 @@
                         appendSystemMessage('ルームを発見しました。接続を確立しています...');
                         const conn = peer.connect(hostPeerId);
                         setupConnection(conn, modeType);
+
+                        // Automatically initiate call if guest joins and wants video
+                        setTimeout(() => {
+                            if (localStream) {
+                                startCall(hostPeerId);
+                            }
+                        }, 1000);
                     });
 
                     peer.on('connection', (conn) => {
                         setupConnection(conn, modeType);
+                    });
+
+                    peer.on('call', (call) => {
+                        handleIncomingCall(call);
                     });
 
                     peer.on('error', (subErr) => {
@@ -467,6 +499,11 @@
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>接続済み</span>';
                 appendSystemMessage((modeType === 'private') ? 'ダイレクトセキュアP2P接続が確立されました！' : 'スクール空間への接続が確立されました！');
                 updatePeerCount();
+
+                // If video is already active, call newly connected peer
+                if (isVideoActive && localStream) {
+                    startCall(conn.peer);
+                }
             });
 
             conn.on('close', () => {
@@ -480,6 +517,126 @@
                 handleDataPacket(conn.peer, packet, modeType);
             });
         }
+
+        // --- Video Call Functions ---
+        async function toggleVideoCall() {
+            const videoContainer = document.getElementById('video-container');
+            const btnVideo = document.getElementById('btn-video-call');
+
+            if (!isVideoActive) {
+                try {
+                    // Request user inner camera (front camera)
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' },
+                        audio: true
+                    });
+
+                    const localVideoEl = document.getElementById('local-video');
+                    localVideoEl.srcObject = localStream;
+
+                    videoContainer.classList.remove('hidden');
+                    btnVideo.className = "bg-red-600 hover:bg-red-500 text-white border border-red-500 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+                    btnVideo.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden sm:inline">通話終了</span>';
+                    isVideoActive = true;
+                    appendSystemMessage('内側カメラのテレビ通話を開始しました');
+
+                    // Call all connected peers
+                    Object.keys(connections).forEach(peerId => {
+                        startCall(peerId);
+                    });
+                } catch (err) {
+                    console.error(err);
+                    alert('カメラまたはマイクへのアクセスが許可されていないか、利用できません。');
+                }
+            } else {
+                stopVideoCall();
+            }
+        }
+
+        function startCall(targetPeerId) {
+            if (!localStream || !peer) return;
+            const call = peer.call(targetPeerId, localStream);
+            if (call) {
+                activeCall = call;
+                call.on('stream', (remoteStream) => {
+                    const remoteVideoEl = document.getElementById('remote-video');
+                    remoteVideoEl.srcObject = remoteStream;
+                    document.getElementById('remote-video-label').innerText = '相手の映像 (接続中)';
+                });
+                call.on('close', () => {
+                    document.getElementById('remote-video').srcObject = null;
+                    document.getElementById('remote-video-label').innerText = '相手の映像 (切断)';
+                });
+            }
+        }
+
+        function handleIncomingCall(call) {
+            if (!localStream) {
+                // Auto-fetch local stream if receiving a call
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+                    .then((stream) => {
+                        localStream = stream;
+                        document.getElementById('local-video').srcObject = localStream;
+                        document.getElementById('video-container').classList.remove('hidden');
+                        isVideoActive = true;
+
+                        const btnVideo = document.getElementById('btn-video-call');
+                        btnVideo.className = "bg-red-600 hover:bg-red-500 text-white border border-red-500 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+                        btnVideo.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden sm:inline">通話終了</span>';
+
+                        call.answer(localStream);
+                        setupCallEvents(call);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        call.answer(); // Answer audio/video without local stream if denied
+                        setupCallEvents(call);
+                    });
+            } else {
+                call.answer(localStream);
+                setupCallEvents(call);
+                document.getElementById('video-container').classList.remove('hidden');
+                isVideoActive = true;
+            }
+        }
+
+        function setupCallEvents(call) {
+            activeCall = call;
+            call.on('stream', (remoteStream) => {
+                const remoteVideoEl = document.getElementById('remote-video');
+                remoteVideoEl.srcObject = remoteStream;
+                document.getElementById('remote-video-label').innerText = '相手の映像 (接続中)';
+                appendSystemMessage('相手のテレビ通話映像を受信しました');
+            });
+            call.on('close', () => {
+                document.getElementById('remote-video').srcObject = null;
+                document.getElementById('remote-video-label').innerText = '相手の映像 (切断)';
+            });
+        }
+
+        function stopVideoCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (activeCall) {
+                activeCall.close();
+                activeCall = null;
+            }
+
+            const localVideoEl = document.getElementById('local-video');
+            const remoteVideoEl = document.getElementById('remote-video');
+            if (localVideoEl) localVideoEl.srcObject = null;
+            if (remoteVideoEl) remoteVideoEl.srcObject = null;
+
+            document.getElementById('video-container').classList.add('hidden');
+            const btnVideo = document.getElementById('btn-video-call');
+            btnVideo.className = "bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+            btnVideo.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden sm:inline">テレビ通話</span>';
+            isVideoActive = false;
+            appendSystemMessage('テレビ通話を終了しました');
+        }
+        // ----------------------------------------
 
         function handleDataPacket(peerId, packet, modeType) {
             if (!incomingBuffers[peerId]) {
@@ -701,7 +858,7 @@
         }
 
         function clearMessages() {
-            document.getElementById('messages-container').innerHTML = '';
+            document.getElementById('messages-container').innerHTML = ``;
         }
 
         function showRoomInfo() {
