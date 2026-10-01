@@ -224,6 +224,7 @@
         let peer = null;
         let connections = {}; 
         let incomingBuffers = {}; 
+        let activeMessages = []; // メッセージデータ保持用
 
         const peerConfig = {
             config: {
@@ -388,6 +389,7 @@
 
         function clearHistory() {
             localStorage.removeItem('nexus_room_history');
+            localStorage.removeItem('nexus_chat_msgs_' + currentRoomId);
             renderHistoryList();
         }
 
@@ -412,12 +414,12 @@
             currentModeName = modeName;
 
             saveRoomToHistory(modeName, roomId);
+            loadSavedMessages(roomId);
 
             document.getElementById('chat-room-title').innerText = `${modeName} (コード: ${currentRoomId})`;
             document.getElementById('chat-room-subtitle').innerText = 'ホスト確認中...';
             document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span><span>接続確立中</span>';
 
-            clearMessages();
             appendSystemMessage(`ルーム [コード: ${currentRoomId}] に接続を試みています...`);
 
             const hostPeerId = `nexus_room_${roomId}_host`;
@@ -470,6 +472,12 @@
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>接続済み</span>';
                 appendSystemMessage('セキュアP2P接続が確立されました！');
                 updatePeerCount();
+
+                // 接続直後に既読通知および既存メッセージの同期を送信
+                sendPayloadReliably({
+                    type: 'read_receipt',
+                    readerName: myName
+                });
             });
 
             conn.on('close', () => {
@@ -490,7 +498,19 @@
             }
 
             if (packet.type === 'chat') {
-                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isMarquee);
+                const msgId = packet.msgId || ('msg_' + Math.random().toString(36).substring(2, 9));
+                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isMarquee, msgId, false);
+                
+                // 受信したら自動的に既読通知を全体へ送り返す
+                sendPayloadReliably({
+                    type: 'read_receipt',
+                    readerName: myName,
+                    msgId: msgId
+                });
+
+                forwardToOthers(peerId, packet);
+            } else if (packet.type === 'read_receipt') {
+                markAsReadUI(packet.readerName);
                 forwardToOthers(peerId, packet);
             } else if (packet.type === 'chunk_start') {
                 incomingBuffers[peerId][packet.fileId] = {
@@ -510,7 +530,15 @@
 
                     if (fileBuf.receivedChunks === fileBuf.totalChunks) {
                         const fullImageBase64 = fileBuf.chunks.join('');
-                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false, false);
+                        const msgId = 'img_msg_' + Math.random().toString(36).substring(2, 9);
+                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false, false, msgId, false);
+                        
+                        sendPayloadReliably({
+                            type: 'read_receipt',
+                            readerName: myName,
+                            msgId: msgId
+                        });
+
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
@@ -552,17 +580,23 @@
             if (!text) return;
 
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, text, true, timestamp, null, false, false);
+            const msgId = 'msg_' + Math.random().toString(36).substring(2, 9);
             
-            sendPayloadReliably({
+            appendMessage(myName, myAvatar, text, true, timestamp, null, false, false, msgId, false);
+            
+            const packet = {
                 type: 'chat',
+                msgId: msgId,
                 senderName: myName,
                 senderAvatar: myAvatar,
                 text: text,
                 timestamp: timestamp,
                 isSticker: false,
                 isMarquee: false
-            });
+            };
+
+            saveMessageToLocalStorage(packet, true);
+            sendPayloadReliably(packet);
 
             input.value = '';
         }
@@ -570,17 +604,23 @@
         function sendSticker(stickerText) {
             toggleStickerPanel();
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true, false);
+            const msgId = 'sticker_' + Math.random().toString(36).substring(2, 9);
 
-            sendPayloadReliably({
+            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true, false, msgId, false);
+
+            const packet = {
                 type: 'chat',
+                msgId: msgId,
                 senderName: myName,
                 senderAvatar: myAvatar,
                 text: stickerText,
                 timestamp: timestamp,
                 isSticker: true,
                 isMarquee: false
-            });
+            };
+
+            saveMessageToLocalStorage(packet, true);
+            sendPayloadReliably(packet);
         }
 
         function promptMarqueeSticker() {
@@ -589,17 +629,23 @@
             if (!text || !text.trim()) return;
 
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, text.trim(), true, timestamp, null, true, true);
+            const msgId = 'marquee_' + Math.random().toString(36).substring(2, 9);
 
-            sendPayloadReliably({
+            appendMessage(myName, myAvatar, text.trim(), true, timestamp, null, true, true, msgId, false);
+
+            const packet = {
                 type: 'chat',
+                msgId: msgId,
                 senderName: myName,
                 senderAvatar: myAvatar,
                 text: text.trim(),
                 timestamp: timestamp,
                 isSticker: true,
                 isMarquee: true
-            });
+            };
+
+            saveMessageToLocalStorage(packet, true);
+            sendPayloadReliably(packet);
         }
 
         function sendImage(event) {
@@ -610,8 +656,20 @@
             reader.onload = function(e) {
                 const base64Image = e.target.result;
                 const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const msgId = 'img_msg_' + Math.random().toString(36).substring(2, 9);
 
-                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false, false);
+                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false, false, msgId, false);
+
+                const packet = {
+                    type: 'chat',
+                    msgId: msgId,
+                    senderName: myName,
+                    senderAvatar: myAvatar,
+                    text: '[画像]',
+                    timestamp: timestamp,
+                    image: base64Image
+                };
+                saveMessageToLocalStorage(packet, true);
 
                 const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
                 const CHUNK_SIZE = 16 * 1024;
@@ -654,10 +712,48 @@
             }
         }
 
-        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false, isMarquee = false) {
+        function saveMessageToLocalStorage(packet, isMe) {
+            if (!currentRoomId) return;
+            let msgs = JSON.parse(localStorage.getItem('nexus_chat_msgs_' + currentRoomId) || '[]');
+            msgs.push({ ...packet, isMe, read: false });
+            if (msgs.length > 50) msgs.shift();
+            localStorage.setItem('nexus_chat_msgs_' + currentRoomId, JSON.stringify(msgs));
+        }
+
+        function loadSavedMessages(roomId) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = `
+                <div class="text-center my-6">
+                    <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
+                        ⚡ スクール空間・マルチ中継通信システム
+                    </div>
+                </div>
+            `;
+            let msgs = JSON.parse(localStorage.getItem('nexus_chat_msgs_' + roomId) || '[]');
+            msgs.forEach(m => {
+                appendMessage(m.senderName, m.senderAvatar, m.text, m.isMe, m.timestamp, m.image || null, m.isSticker || false, m.isMarquee || false, m.msgId || '', m.read || false);
+            });
+        }
+
+        function markAsReadUI(readerName) {
+            if (readerName === myName) return;
+            const readIndicators = document.querySelectorAll('.read-status-indicator');
+            readIndicators.forEach(el => {
+                if (el.innerText !== '既読済') {
+                    el.innerText = '既読済';
+                    el.classList.add('text-indigo-400', 'font-semibold');
+                    el.classList.remove('text-slate-500');
+                }
+            });
+        }
+
+        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false, isMarquee = false, msgId = '', isRead = false) {
             const container = document.getElementById('messages-container');
             const messageRow = document.createElement('div');
             messageRow.className = `flex items-end space-x-2 mb-3 ${isMe ? 'justify-end' : 'justify-start'}`;
+            if (msgId) {
+                messageRow.setAttribute('data-msg-id', msgId);
+            }
 
             let avatarHtml = '';
             if (senderAvatar) {
@@ -671,7 +767,7 @@
             if (image) {
                 contentHtml += `<img src="${image}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
             }
-            if (text) {
+            if (text && text !== '[画像]') {
                 if (isMarquee) {
                     contentHtml += `
                         <div class="bg-black border-2 border-red-600 rounded-xl p-2.5 overflow-hidden shadow-inner w-64 md:w-80">
@@ -693,10 +789,16 @@
                 }
             }
 
+            const readStatusText = isRead ? '既読済' : '未読';
+            const readStatusClass = isRead ? 'text-indigo-400 font-semibold' : 'text-slate-500';
+
             if (isMe) {
                 messageRow.innerHTML = `
                     <div class="flex items-end space-x-1 max-w-xs md:max-w-md">
-                        <span class="text-[10px] text-slate-400 self-end mb-1">${timestamp}</span>
+                        <div class="flex flex-col items-end mb-1">
+                            <span class="text-[10px] ${readStatusClass} read-status-indicator">${readStatusText}</span>
+                            <span class="text-[10px] text-slate-400">${timestamp}</span>
+                        </div>
                         <div class="bg-indigo-600 text-white rounded-2xl px-4 py-2.5 shadow-md rounded-br-none">
                             ${contentHtml}
                         </div>
