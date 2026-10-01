@@ -750,7 +750,8 @@
 
         let relayedPackets = new Set();
         function forwardToGroupOthers(excludePeerId, packet) {
-            const packetKey = (packet.text || packet.fileId || packet.type) + (packet.timestamp || '');
+            // 重複判定にメッセージ本文だけでなくタイムスタンプと送信者名を含めることで、同じ内容でも別発言なら正しく転送しつつ、同一パケットの重複ループを防ぐ
+            const packetKey = (packet.senderName || '') + (packet.text || packet.fileId || packet.type) + (packet.timestamp || '');
             if (packet.type === 'read_receipt') {
                 // 既読の重複転送抑制キー
             } else {
@@ -792,6 +793,10 @@
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             appendMessage(myName, myAvatar, text, true, timestamp, null, false);
             
+            // 重複転送防止フィルターに自分の送信メッセージのキーをあらかじめ登録しておく
+            const packetKey = myName + text + timestamp;
+            relayedPackets.add(packetKey);
+
             sendPayloadReliably({
                 type: 'chat',
                 senderName: myName,
@@ -808,6 +813,10 @@
             toggleStickerPanel();
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true);
+
+            // 重複転送防止フィルターに自分のスタンプ送信のキーをあらかじめ登録しておく
+            const packetKey = myName + stickerText + timestamp;
+            relayedPackets.add(packetKey);
 
             sendPayloadReliably({
                 type: 'chat',
@@ -831,6 +840,10 @@
                 appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false);
 
                 const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
+                
+                // 重複転送防止フィルターに画像のファイルIDをあらかじめ登録しておく
+                relayedPackets.add(myName + fileId + timestamp);
+
                 const CHUNK_SIZE = 16 * 1024;
                 const totalChunks = Math.ceil(base64Image.length / CHUNK_SIZE);
 
