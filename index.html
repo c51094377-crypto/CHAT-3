@@ -93,13 +93,14 @@
                 <!-- Group Chat Panel -->
                 <div id="panel-group" class="space-y-3 hidden">
                     <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ)</h3>
-                    <button onclick="createGroupRoom()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
-                        <i class="fa-solid fa-cube"></i><span>新ルームを発行</span>
-                    </button>
+                    <p class="text-xs text-slate-400">自由な4桁コードを入力して作成または入室できます。</p>
                     <div class="flex space-x-2">
                         <input type="text" id="group-room-input" maxlength="4" placeholder="4桁コード" class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-sm text-center tracking-widest font-bold text-white focus:outline-none focus:border-indigo-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        <button onclick="joinGroupRoom()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">入室</button>
+                        <button onclick="joinGroupRoom()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-xl text-sm font-semibold transition shadow">入室/作成</button>
                     </div>
+                    <button onclick="createGroupRoom()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs">
+                        <i class="fa-solid fa-dice"></i><span>ランダムな4桁を自動発行</span>
+                    </button>
                 </div>
 
                 <!-- Chat History / Rooms Record Section -->
@@ -144,7 +145,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 個人・グループ完全分離ロジック搭載システム
+                        ⚡ 自由入力スクール空間・個人分離システム
                     </div>
                 </div>
             </div>
@@ -213,7 +214,6 @@
         let connections = {}; 
         let incomingBuffers = {}; 
 
-        // 異なるネットワーク環境に対応するSTUN設定
         const peerConfig = {
             config: {
                 iceServers: [
@@ -389,7 +389,6 @@
             initRoom(modeName, roomId, modeType);
         }
 
-        // 個人とグループを明確に区別した初期化ロジック
         function initRoom(modeName, roomId, modeType) {
             if (peer) {
                 peer.destroy();
@@ -474,7 +473,6 @@
             });
         }
 
-        // 個人とグループで完全に分離されたデータ受信・中継ロジック
         function handleDataPacket(peerId, packet, modeType) {
             if (!incomingBuffers[peerId]) {
                 incomingBuffers[peerId] = {};
@@ -483,7 +481,6 @@
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
                 
-                // グループモードかつ自分がホストの場合のみ、他のメンバー全員へメッセージを完全転送する
                 if (modeType === 'group' && peer && peer.id.includes('_host')) {
                     forwardToGroupOthers(peerId, packet);
                 }
@@ -517,7 +514,6 @@
             }
         }
 
-        // スクール空間（グループ）専用の全体同期ホスト中継関数
         function forwardToGroupOthers(excludePeerId, packet) {
             Object.keys(connections).forEach(targetId => {
                 if (targetId !== excludePeerId) {
