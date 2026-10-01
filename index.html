@@ -40,6 +40,15 @@
         .animate-blink {
             animation: blink 1.5s infinite;
         }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 6s linear infinite;
+        }
     </style>
 </head>
 <body class="bg-slate-900 h-screen flex flex-col font-sans text-slate-100 select-none">
@@ -144,21 +153,25 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        動くかわかんないけど他のネットワークも可能です
+                        ⚡ 電光掲示板アニメーションスタンプ搭載
                     </div>
                 </div>
             </div>
 
             <!-- Custom Original Sticker Panel -->
             <div id="sticker-panel" class="bg-slate-900 border-t border-slate-700 p-3 hidden grid grid-cols-2 sm:grid-cols-4 gap-2 shadow-2xl z-20">
-                <button onclick="sendSticker('thank you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">thank you</button>
-                <button onclick="sendSticker('what are you name')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">What are you name</button>
-                <button onclick="sendSticker('STOP')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">STOP</button>
-                <button onclick="sendSticker('I wish you good luck.')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">I wish you good luck.</button>
-                <button onclick="sendSticker('休息中')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">休息中</button>
-                <button onclick="sendSticker('( ＾∀＾) え？なんて？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ＾∀＾)え？なんて？</button>
-                <button onclick="sendSticker('( ・∇・)ﾉ ﾔｱ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ・∇・)ﾉ ﾔｱ</button>
-                <button onclick="sendSticker('HELLO')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">HELLO</button>
+                <button onclick="sendSticker('✨ ノート完了！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">✨ ノート完了！</button>
+                <button onclick="sendSticker('📚 宿題どこ？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">📚 宿題どこ？</button>
+                <button onclick="sendSticker('💡 ひらめいた！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">💡 ひらめいた！</button>
+                <button onclick="sendSticker('🚀 テストがんばろ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🚀 テストがんばろ</button>
+                <button onclick="sendSticker('☕ 休憩しよー')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">☕ 休憩しよー</button>
+                <button onclick="sendSticker('⭐ ありがとう！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">⭐ ありがとう！</button>
+                <button onclick="sendSticker('🤝 よろしく！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🤝 よろしく！</button>
+                <button onclick="sendSticker('🔥 やる気MAX')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🔥 やる気MAX</button>
+                <button onclick="promptMarqueeSticker()" class="col-span-2 sm:col-span-4 bg-indigo-900 hover:bg-indigo-800 border border-indigo-600 p-3 rounded-xl text-xs font-extrabold text-indigo-200 shadow transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-rectangle-ad text-sm"></i>
+                    <span>📢 電光掲示板スタンプを作成する</span>
+                </button>
             </div>
 
             <!-- Input Bar -->
@@ -213,7 +226,6 @@
         let connections = {}; 
         let incomingBuffers = {}; 
 
-        // 異なるネットワーク間（別Wi-Fiやモバイル回線など）でも接続できるようにSTUNサーバーを設定
         const peerConfig = {
             config: {
                 iceServers: [
@@ -409,7 +421,6 @@
             const hostPeerId = `nexus_room_${roomId}_host`;
             const myId = `nexus_room_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
 
-            // STUNサーバー設定を適用したPeerインスタンスの作成
             peer = new Peer(hostPeerId, peerConfig);
 
             peer.on('open', (id) => {
@@ -426,7 +437,6 @@
                 if (err.type === 'unavailable-id') {
                     peer.destroy();
                     
-                    // ゲスト側もSTUN設定を適用
                     peer = new Peer(myId, peerConfig);
                     peer.on('open', () => {
                         appendSystemMessage('ホストを発見しました。接続を確立しています...');
@@ -478,7 +488,7 @@
             }
 
             if (packet.type === 'chat') {
-                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
+                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isMarquee);
                 if (peer && peer.id.includes('_host')) {
                     forwardToOthers(peerId, packet);
                 }
@@ -502,7 +512,7 @@
 
                     if (fileBuf.receivedChunks === fileBuf.totalChunks) {
                         const fullImageBase64 = fileBuf.chunks.join('');
-                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false);
+                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false, false);
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
@@ -546,7 +556,7 @@
             if (!text) return;
 
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, text, true, timestamp, null, false);
+            appendMessage(myName, myAvatar, text, true, timestamp, null, false, false);
             
             sendPayloadReliably({
                 type: 'chat',
@@ -554,7 +564,8 @@
                 senderAvatar: myAvatar,
                 text: text,
                 timestamp: timestamp,
-                isSticker: false
+                isSticker: false,
+                isMarquee: false
             });
 
             input.value = '';
@@ -563,7 +574,7 @@
         function sendSticker(stickerText) {
             toggleStickerPanel();
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true);
+            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true, false);
 
             sendPayloadReliably({
                 type: 'chat',
@@ -571,7 +582,27 @@
                 senderAvatar: myAvatar,
                 text: stickerText,
                 timestamp: timestamp,
-                isSticker: true
+                isSticker: true,
+                isMarquee: false
+            });
+        }
+
+        function promptMarqueeSticker() {
+            toggleStickerPanel();
+            const text = prompt('電光掲示板に流す文字を入力してください:', '⚠️ 重要なお知らせ: 集中しよう！ ⚠️');
+            if (!text || !text.trim()) return;
+
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            appendMessage(myName, myAvatar, text.trim(), true, timestamp, null, true, true);
+
+            sendPayloadReliably({
+                type: 'chat',
+                senderName: myName,
+                senderAvatar: myAvatar,
+                text: text.trim(),
+                timestamp: timestamp,
+                isSticker: true,
+                isMarquee: true
             });
         }
 
@@ -584,7 +615,7 @@
                 const base64Image = e.target.result;
                 const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false);
+                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false, false);
 
                 const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
                 const CHUNK_SIZE = 16 * 1024;
@@ -627,7 +658,7 @@
             }
         }
 
-        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false) {
+        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false, isMarquee = false) {
             const container = document.getElementById('messages-container');
             const messageRow = document.createElement('div');
             messageRow.className = `flex items-end space-x-2 mb-3 ${isMe ? 'justify-end' : 'justify-start'}`;
@@ -645,7 +676,21 @@
                 contentHtml += `<img src="${image}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
             }
             if (text) {
-                if (isSticker) {
+                if (isMarquee) {
+                    contentHtml += `
+                        <div class="bg-black border-2 border-red-600 rounded-xl p-2.5 overflow-hidden shadow-inner w-64 md:w-80">
+                            <div class="flex items-center space-x-1.5 mb-1 text-[10px] text-red-500 font-mono">
+                                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                                <span>LED DISPLAY</span>
+                            </div>
+                            <div class="overflow-hidden whitespace-nowrap bg-zinc-950 py-1.5 px-1 rounded border border-red-900/50">
+                                <div class="animate-marquee font-mono font-black text-amber-400 text-sm tracking-widest" style="font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 8px rgba(251, 191, 36, 0.7);">
+                                    ${escapeHtml(text)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (isSticker) {
                     contentHtml += `<div class="text-sm font-bold py-1.5 px-3 bg-indigo-950 text-indigo-200 border border-indigo-700/50 rounded-xl shadow-inner">${escapeHtml(text)}</div>`;
                 } else {
                     contentHtml += `<p class="text-sm text-slate-100">${escapeHtml(text)}</p>`;
