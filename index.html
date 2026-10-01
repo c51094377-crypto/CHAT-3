@@ -40,15 +40,6 @@
         .animate-blink {
             animation: blink 1.5s infinite;
         }
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-        .animate-marquee {
-            display: inline-block;
-            white-space: nowrap;
-            animation: marquee 6s linear infinite;
-        }
     </style>
 </head>
 <body class="bg-slate-900 h-screen flex flex-col font-sans text-slate-100 select-none">
@@ -91,7 +82,7 @@
             <div class="p-4 flex-1 overflow-y-auto space-y-4">
                 <!-- Private Chat Panel -->
                 <div id="panel-private" class="space-y-3">
-                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">ダイレクトトーク (1対1専用)</h3>
+                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">ダイレクトトーク</h3>
                     <p class="text-xs text-slate-400">4桁のシークレットコードで完全安全な1対1のP2P通信を確立します。</p>
                     <div class="flex space-x-2">
                         <input type="text" id="private-room-input" maxlength="4" placeholder="4桁コード" class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-sm text-center tracking-widest font-bold text-white focus:outline-none focus:border-indigo-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -101,19 +92,20 @@
 
                 <!-- Group Chat Panel -->
                 <div id="panel-group" class="space-y-3 hidden">
-                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ専用)</h3>
-                    <p class="text-xs text-slate-400">4桁の好きなコードを決めて、新しいグループを作成または入室します。</p>
+                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ)</h3>
+                    <button onclick="createGroupRoom()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-cube"></i><span>新ルームを発行</span>
+                    </button>
                     <div class="flex space-x-2">
                         <input type="text" id="group-room-input" maxlength="4" placeholder="4桁コード" class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-sm text-center tracking-widest font-bold text-white focus:outline-none focus:border-indigo-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        <button onclick="createGroupRoom()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-xl text-xs font-semibold transition shadow" title="自分で決めたコードで作成">作成</button>
-                        <button onclick="joinGroupRoom()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl text-xs font-semibold transition" title="入室">入室</button>
+                        <button onclick="joinGroupRoom()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">入室</button>
                     </div>
                 </div>
 
                 <!-- Chat History / Rooms Record Section -->
                 <div class="border-t border-slate-700 pt-3 space-y-2">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">チャット履歴 & 既読管理</h3>
+                        <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">チャット履歴 (再接続)</h3>
                         <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-slate-300">履歴クリア</button>
                     </div>
                     <div id="history-list" class="space-y-1.5 max-h-40 overflow-y-auto">
@@ -152,7 +144,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 個人・グループ完全分離ロジック & マルチ中継・既読システム
+                        ⚡ 個人・グループ完全分離ロジック搭載システム
                     </div>
                 </div>
             </div>
@@ -167,10 +159,6 @@
                 <button onclick="sendSticker('⭐ ありがとう！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">⭐ ありがとう！</button>
                 <button onclick="sendSticker('🤝 よろしく！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🤝 よろしく！</button>
                 <button onclick="sendSticker('🔥 やる気MAX')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🔥 やる気MAX</button>
-                <button onclick="promptMarqueeSticker()" class="col-span-2 sm:col-span-4 bg-indigo-900 hover:bg-indigo-800 border border-indigo-600 p-3 rounded-xl text-xs font-extrabold text-indigo-200 shadow transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-rectangle-ad text-sm"></i>
-                    <span>📢 電光掲示板スタンプを作成する</span>
-                </button>
             </div>
 
             <!-- Input Bar -->
@@ -217,16 +205,15 @@
         let myName = localStorage.getItem('nexus_my_name') || ('ユーザー_' + Math.floor(Math.random() * 1000));
         let myAvatar = localStorage.getItem('nexus_my_avatar') || null;
 
-        let currentMode = 'private'; // 'private' or 'group'
+        let currentMode = 'private';
         let currentRoomId = null;
         let currentModeName = '';
         
         let peer = null;
         let connections = {}; 
         let incomingBuffers = {}; 
-        let myUniquePeerId = '';
-        let isHost = false;
 
+        // 異なるネットワーク環境に対応するSTUN設定
         const peerConfig = {
             config: {
                 iceServers: [
@@ -336,16 +323,13 @@
                 alert('4桁の数字コードを入力してください。');
                 return;
             }
-            initRoom('private', 'ダイレクト', roomId);
+            initRoom('ダイレクト', roomId, 'private');
         }
 
         function createGroupRoom() {
-            const roomId = document.getElementById('group-room-input').value.trim();
-            if (roomId.length !== 4 || isNaN(roomId)) {
-                alert('作成する4桁の数字コードを入力してください。');
-                return;
-            }
-            initRoom('group', 'スクール空間', roomId);
+            const random4Digits = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('group-room-input').value = random4Digits;
+            initRoom('スクール空間', random4Digits, 'group');
         }
 
         function joinGroupRoom() {
@@ -354,27 +338,21 @@
                 alert('4桁の数字コードを入力してください。');
                 return;
             }
-            initRoom('group', 'スクール空間', roomId);
+            initRoom('スクール空間', roomId, 'group');
         }
 
-        function saveRoomToHistory(mode, modeName, roomId) {
-            const historyKey = mode === 'private' ? 'nexus_private_history' : 'nexus_group_history';
-            let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+        function saveRoomToHistory(modeName, roomId) {
+            let history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
             history = history.filter(item => item.roomId !== roomId);
-            history.unshift({ mode, modeName, roomId, time: new Date().toLocaleDateString() });
+            history.unshift({ modeName, roomId, time: new Date().toLocaleDateString() });
             if (history.length > 10) history.pop();
-            localStorage.setItem(historyKey, JSON.stringify(history));
-
-            // Also save messages storage key template
+            localStorage.setItem('nexus_room_history', JSON.stringify(history));
             renderHistoryList();
         }
 
         function renderHistoryList() {
             const container = document.getElementById('history-list');
-            const privHistory = JSON.parse(localStorage.getItem('nexus_private_history') || '[]');
-            const groupHistory = JSON.parse(localStorage.getItem('nexus_group_history') || '[]');
-            const history = [...privHistory, ...groupHistory];
-
+            const history = JSON.parse(localStorage.getItem('nexus_room_history') || '[]');
             if (history.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-500 text-center py-2">記録されたルームはありません</p>';
                 return;
@@ -388,113 +366,78 @@
                         <span class="font-bold text-white">${item.modeName}</span>
                         <span class="text-indigo-400 ml-1.5 tracking-wider">[${item.roomId}]</span>
                     </div>
-                    <button onclick="reconnectRoom('${item.mode}', '${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
+                    <button onclick="reconnectRoom('${item.modeName}', '${item.roomId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold transition">再接続</button>
                 `;
                 container.appendChild(div);
             });
         }
 
         function clearHistory() {
-            localStorage.removeItem('nexus_private_history');
-            localStorage.removeItem('nexus_group_history');
+            localStorage.removeItem('nexus_room_history');
             renderHistoryList();
         }
 
-        function reconnectRoom(mode, modeName, roomId) {
-            switchMode(mode);
-            if (mode === 'private') {
+        function reconnectRoom(modeName, roomId) {
+            const modeType = (modeName === 'ダイレクト') ? 'private' : 'group';
+            if (modeType === 'private') {
+                switchMode('private');
                 document.getElementById('private-room-input').value = roomId;
             } else {
+                switchMode('group');
                 document.getElementById('group-room-input').value = roomId;
             }
-            initRoom(mode, modeName, roomId);
+            initRoom(modeName, roomId, modeType);
         }
 
-        function loadChatMessages(mode, roomId) {
-            const storageKey = `nexus_msgs_${mode}_${roomId}`;
-            return JSON.parse(localStorage.getItem(storageKey) || '[]');
-        }
-
-        function saveChatMessage(mode, roomId, msgObj) {
-            const storageKey = `nexus_msgs_${mode}_${roomId}`;
-            let msgs = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            msgs.push(msgObj);
-            if (msgs.length > 50) msgs.shift();
-            localStorage.setItem(storageKey, JSON.stringify(msgs));
-        }
-
-        function updateMessageReadStatusInStorage(mode, roomId, messageId) {
-            const storageKey = `nexus_msgs_${mode}_${roomId}`;
-            let msgs = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            msgs = msgs.map(m => {
-                if (m.id === messageId) {
-                    m.isRead = true;
-                }
-                return m;
-            });
-            localStorage.setItem(storageKey, JSON.stringify(msgs));
-        }
-
-        function initRoom(mode, modeName, roomId) {
+        // 個人とグループを明確に区別した初期化ロジック
+        function initRoom(modeName, roomId, modeType) {
             if (peer) {
                 peer.destroy();
             }
             connections = {};
             incomingBuffers = {};
             currentRoomId = roomId;
-            currentMode = mode;
             currentModeName = modeName;
+            currentMode = modeType;
 
-            saveRoomToHistory(mode, modeName, roomId);
+            saveRoomToHistory(modeName, roomId);
 
             document.getElementById('chat-room-title').innerText = `${modeName} (コード: ${currentRoomId})`;
-            document.getElementById('chat-room-subtitle').innerText = '接続確立中...';
+            document.getElementById('chat-room-subtitle').innerText = '接続準備中...';
             document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span><span>接続確立中</span>';
 
             clearMessages();
-            
-            // Load saved history messages for this specific room and mode
-            const savedMsgs = loadChatMessages(mode, roomId);
-            if (savedMsgs.length > 0) {
-                appendSystemMessage('過去の会話履歴を読み込みました');
-                savedMsgs.forEach(m => {
-                    appendMessage(m.sender, m.senderAvatar, m.text, m.isMe, m.timestamp, m.image, m.isSticker, m.isMarquee, m.isRead, m.id, false);
-                });
-            } else {
-                appendSystemMessage(`${modeName} [コード: ${currentRoomId}] のセッションを開始しました`);
-            }
+            appendSystemMessage(`ルーム [コード: ${currentRoomId}] (${modeName}) に接続を試みています...`);
 
-            // Strictly separate logic prefixes to avoid mixing private and group connections
-            const targetPeerId = `nexus_${mode}_${roomId}_host`;
-            myUniquePeerId = `nexus_${mode}_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
+            const prefix = (modeType === 'private') ? 'nexus_private' : 'nexus_group';
+            const hostPeerId = `${prefix}_${roomId}_host`;
+            const myId = `${prefix}_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
 
-            peer = new Peer(targetPeerId, peerConfig);
+            peer = new Peer(hostPeerId, peerConfig);
 
             peer.on('open', (id) => {
-                isHost = true;
-                document.getElementById('chat-room-subtitle').innerText = 'ホストとして待受中（参加者待ち）';
-                appendSystemMessage('あなたがこのルームのホストです。参加者を待っています...');
+                document.getElementById('chat-room-subtitle').innerText = (modeType === 'private') ? 'ダイレクト待受中' : 'スクール空間ホスト（参加者待ち）';
+                appendSystemMessage((modeType === 'private') ? 'ダイレクト回線を開設しました。相手の接続を待っています...' : 'グループ空間を作成しました。参加者を待っています...');
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>待受中</span>';
                 
                 peer.on('connection', (conn) => {
-                    setupConnection(conn);
+                    setupConnection(conn, modeType);
                 });
             });
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
-                    isHost = false;
                     peer.destroy();
                     
-                    peer = new Peer(myUniquePeerId, peerConfig);
+                    peer = new Peer(myId, peerConfig);
                     peer.on('open', () => {
-                        appendSystemMessage('ホストを発見しました。接続を確立しています...');
-                        const conn = peer.connect(targetPeerId);
-                        setupConnection(conn);
+                        appendSystemMessage('ルームを発見しました。接続を確立しています...');
+                        const conn = peer.connect(hostPeerId);
+                        setupConnection(conn, modeType);
                     });
 
                     peer.on('connection', (conn) => {
-                        setupConnection(conn);
+                        setupConnection(conn, modeType);
                     });
 
                     peer.on('error', (subErr) => {
@@ -510,89 +453,40 @@
             });
         }
 
-        function setupConnection(conn) {
+        function setupConnection(conn, modeType) {
             connections[conn.peer] = conn;
 
             conn.on('open', () => {
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>接続済み</span>';
-                appendSystemMessage('セキュアP2P接続が確立されました！');
+                appendSystemMessage((modeType === 'private') ? 'ダイレクトセキュアP2P接続が確立されました！' : 'スクール空間への接続が確立されました！');
                 updatePeerCount();
-
-                // If we are guest in group mode, request existing connections info or sync
-                if (currentMode === 'group' && !isHost) {
-                    conn.send({ type: 'request_peers', senderPeerId: myUniquePeerId });
-                }
             });
 
             conn.on('close', () => {
                 delete connections[conn.peer];
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>切断</span>';
-                appendSystemMessage('参加者が退出しました');
+                appendSystemMessage('相手が退出しました');
                 updatePeerCount();
             });
 
             conn.on('data', (packet) => {
-                handleDataPacket(conn.peer, packet);
+                handleDataPacket(conn.peer, packet, modeType);
             });
         }
 
-        function handleDataPacket(peerId, packet) {
+        // 個人とグループで完全に分離されたデータ受信・中継ロジック
+        function handleDataPacket(peerId, packet, modeType) {
             if (!incomingBuffers[peerId]) {
                 incomingBuffers[peerId] = {};
             }
 
             if (packet.type === 'chat') {
-                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isMarquee, false, packet.id, true);
+                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
                 
-                // Save incoming message to local storage
-                saveChatMessage(currentMode, currentRoomId, {
-                    id: packet.id,
-                    sender: packet.senderName,
-                    senderAvatar: packet.senderAvatar,
-                    text: packet.text,
-                    isMe: false,
-                    timestamp: packet.timestamp,
-                    image: null,
-                    isSticker: packet.isSticker,
-                    isMarquee: packet.isMarquee,
-                    isRead: true
-                });
-
-                // Send read receipt back to sender
-                const conn = connections[peerId];
-                if (conn && conn.open) {
-                    conn.send({ type: 'read_receipt', messageId: packet.id });
+                // グループモードかつ自分がホストの場合のみ、他のメンバー全員へメッセージを完全転送する
+                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                    forwardToGroupOthers(peerId, packet);
                 }
-
-                // If group mode and we are host, broadcast this packet to ALL other connected peers so 3rd+ members can see everything!
-                if (currentMode === 'group' && isHost) {
-                    forwardToOthers(peerId, packet);
-                }
-            } else if (packet.type === 'read_receipt') {
-                markMessageAsReadUI(packet.messageId);
-                updateMessageReadStatusInStorage(currentMode, currentRoomId, packet.messageId);
-
-                if (currentMode === 'group' && isHost) {
-                    forwardToOthers(peerId, packet);
-                }
-            } else if (packet.type === 'request_peers' && currentMode === 'group' && isHost) {
-                // Host handles mesh introduction for group mode so all members connect directly to each other!
-                const newPeerId = packet.senderPeerId;
-                const existingPeers = Object.keys(connections).filter(id => id !== newPeerId);
-                
-                // Tell the new peer about existing peers
-                const conn = connections[newPeerId];
-                if (conn && conn.open) {
-                    conn.send({ type: 'peer_list', peers: existingPeers });
-                }
-            } else if (packet.type === 'peer_list' && currentMode === 'group' && !isHost) {
-                // Connect to other peers in the group mesh network
-                packet.peers.forEach(targetPeerId => {
-                    if (!connections[targetPeerId] && targetPeerId !== peer.id) {
-                        const newConn = peer.connect(targetPeerId);
-                        setupConnection(newConn);
-                    }
-                });
             } else if (packet.type === 'chunk_start') {
                 incomingBuffers[peerId][packet.fileId] = {
                     senderName: packet.senderName,
@@ -602,7 +496,9 @@
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks)
                 };
-                if (currentMode === 'group' && isHost) forwardToOthers(peerId, packet);
+                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                    forwardToGroupOthers(peerId, packet);
+                }
             } else if (packet.type === 'chunk_data') {
                 const fileBuf = incomingBuffers[peerId][packet.fileId];
                 if (fileBuf && !fileBuf.chunks[packet.chunkIndex]) {
@@ -611,29 +507,18 @@
 
                     if (fileBuf.receivedChunks === fileBuf.totalChunks) {
                         const fullImageBase64 = fileBuf.chunks.join('');
-                        const msgId = 'img_' + Math.random().toString(36).substring(2, 9);
-                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false, false, false, msgId, true);
-                        
-                        saveChatMessage(currentMode, currentRoomId, {
-                            id: msgId,
-                            sender: fileBuf.senderName,
-                            senderAvatar: fileBuf.senderAvatar,
-                            text: '',
-                            isMe: false,
-                            timestamp: fileBuf.timestamp,
-                            image: fullImageBase64,
-                            isSticker: false,
-                            isMarquee: false,
-                            isRead: true
-                        });
+                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false);
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
-                if (currentMode === 'group' && isHost) forwardToOthers(peerId, packet);
+                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                    forwardToGroupOthers(peerId, packet);
+                }
             }
         }
 
-        function forwardToOthers(excludePeerId, packet) {
+        // スクール空間（グループ）専用の全体同期ホスト中継関数
+        function forwardToGroupOthers(excludePeerId, packet) {
             Object.keys(connections).forEach(targetId => {
                 if (targetId !== excludePeerId) {
                     const conn = connections[targetId];
@@ -667,32 +552,15 @@
             if (!text) return;
 
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const msgId = 'msg_' + Math.random().toString(36).substring(2, 9);
-
-            appendMessage(myName, myAvatar, text, true, timestamp, null, false, false, false, msgId, false);
+            appendMessage(myName, myAvatar, text, true, timestamp, null, false);
             
-            saveChatMessage(currentMode, currentRoomId, {
-                id: msgId,
-                sender: myName,
-                senderAvatar: myAvatar,
-                text: text,
-                isMe: true,
-                timestamp: timestamp,
-                image: null,
-                isSticker: false,
-                isMarquee: false,
-                isRead: false
-            });
-
             sendPayloadReliably({
                 type: 'chat',
-                id: msgId,
                 senderName: myName,
                 senderAvatar: myAvatar,
                 text: text,
                 timestamp: timestamp,
-                isSticker: false,
-                isMarquee: false
+                isSticker: false
             });
 
             input.value = '';
@@ -701,67 +569,15 @@
         function sendSticker(stickerText) {
             toggleStickerPanel();
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const msgId = 'stk_' + Math.random().toString(36).substring(2, 9);
-
-            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true, false, false, msgId, false);
-
-            saveChatMessage(currentMode, currentRoomId, {
-                id: msgId,
-                sender: myName,
-                senderAvatar: myAvatar,
-                text: stickerText,
-                isMe: true,
-                timestamp: timestamp,
-                image: null,
-                isSticker: true,
-                isMarquee: false,
-                isRead: false
-            });
+            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true);
 
             sendPayloadReliably({
                 type: 'chat',
-                id: msgId,
                 senderName: myName,
                 senderAvatar: myAvatar,
                 text: stickerText,
                 timestamp: timestamp,
-                isSticker: true,
-                isMarquee: false
-            });
-        }
-
-        function promptMarqueeSticker() {
-            toggleStickerPanel();
-            const text = prompt('電光掲示板に流す文字を入力してください:', '⚠️ 重要なお知らせ: 集中しよう！ ⚠️');
-            if (!text || !text.trim()) return;
-
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const msgId = 'mrq_' + Math.random().toString(36).substring(2, 9);
-
-            appendMessage(myName, myAvatar, text.trim(), true, timestamp, null, true, true, false, msgId, false);
-
-            saveChatMessage(currentMode, currentRoomId, {
-                id: msgId,
-                sender: myName,
-                senderAvatar: myAvatar,
-                text: text.trim(),
-                isMe: true,
-                timestamp: timestamp,
-                image: null,
-                isSticker: true,
-                isMarquee: true,
-                isRead: false
-            });
-
-            sendPayloadReliably({
-                type: 'chat',
-                id: msgId,
-                senderName: myName,
-                senderAvatar: myAvatar,
-                text: text.trim(),
-                timestamp: timestamp,
-                isSticker: true,
-                isMarquee: true
+                isSticker: true
             });
         }
 
@@ -773,24 +589,10 @@
             reader.onload = function(e) {
                 const base64Image = e.target.result;
                 const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const msgId = 'img_' + Math.random().toString(36).substring(2, 9);
 
-                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false, false, false, msgId, false);
+                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false);
 
-                saveChatMessage(currentMode, currentRoomId, {
-                    id: msgId,
-                    sender: myName,
-                    senderAvatar: myAvatar,
-                    text: '',
-                    isMe: true,
-                    timestamp: timestamp,
-                    image: base64Image,
-                    isSticker: false,
-                    isMarquee: false,
-                    isRead: false
-                });
-
-                const fileId = 'file_' + Math.random().toString(36).substring(2, 9);
+                const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
                 const CHUNK_SIZE = 16 * 1024;
                 const totalChunks = Math.ceil(base64Image.length / CHUNK_SIZE);
 
@@ -831,11 +633,10 @@
             }
         }
 
-        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false, isMarquee = false, isRead = false, messageId = '', sendAutoRead = true) {
+        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false) {
             const container = document.getElementById('messages-container');
             const messageRow = document.createElement('div');
             messageRow.className = `flex items-end space-x-2 mb-3 ${isMe ? 'justify-end' : 'justify-start'}`;
-            messageRow.setAttribute('data-msg-id', messageId);
 
             let avatarHtml = '';
             if (senderAvatar) {
@@ -850,36 +651,16 @@
                 contentHtml += `<img src="${image}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
             }
             if (text) {
-                if (isMarquee) {
-                    contentHtml += `
-                        <div class="bg-black border-2 border-red-600 rounded-xl p-2.5 overflow-hidden shadow-inner w-64 md:w-80">
-                            <div class="flex items-center space-x-1.5 mb-1 text-[10px] text-red-500 font-mono">
-                                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                                <span>LED DISPLAY</span>
-                            </div>
-                            <div class="overflow-hidden whitespace-nowrap bg-zinc-950 py-1.5 px-1 rounded border border-red-900/50">
-                                <div class="animate-marquee font-mono font-black text-amber-400 text-sm tracking-widest" style="font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 8px rgba(251, 191, 36, 0.7);">
-                                    ${escapeHtml(text)}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else if (isSticker) {
+                if (isSticker) {
                     contentHtml += `<div class="text-sm font-bold py-1.5 px-3 bg-indigo-950 text-indigo-200 border border-indigo-700/50 rounded-xl shadow-inner">${escapeHtml(text)}</div>`;
                 } else {
                     contentHtml += `<p class="text-sm text-slate-100">${escapeHtml(text)}</p>`;
                 }
             }
 
-            // Read status badge indicator
-            const readStatusHtml = isMe 
-                ? `<span class="read-status-badge text-[10px] ${isRead ? 'text-indigo-400 font-bold' : 'text-slate-500'} ml-1">${isRead ? '既読済' : '未読'}</span>` 
-                : '';
-
             if (isMe) {
                 messageRow.innerHTML = `
                     <div class="flex items-end space-x-1 max-w-xs md:max-w-md">
-                        ${readStatusHtml}
                         <span class="text-[10px] text-slate-400 self-end mb-1">${timestamp}</span>
                         <div class="bg-indigo-600 text-white rounded-2xl px-4 py-2.5 shadow-md rounded-br-none">
                             ${contentHtml}
@@ -906,17 +687,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function markMessageAsReadUI(messageId) {
-            const row = document.querySelector(`[data-msg-id="${messageId}"]`);
-            if (row) {
-                const badge = row.querySelector('.read-status-badge');
-                if (badge) {
-                    badge.innerText = '既読済';
-                    badge.className = 'read-status-badge text-[10px] text-indigo-400 font-bold ml-1';
-                }
-            }
-        }
-
         function appendSystemMessage(text) {
             const container = document.getElementById('messages-container');
             const div = document.createElement('div');
@@ -932,7 +702,7 @@
 
         function showRoomInfo() {
             if (currentRoomId) {
-                alert(`Nexus Chat セッション情報\nモード: ${currentModeName}\nコード: ${currentRoomId}\nホスト権限: ${isHost ? 'はい（ホスト）' : 'いいえ（ゲスト）'}`);
+                alert(`Nexus Chat セッション情報\nコード: ${currentRoomId}\nモード: ${currentMode === 'private' ? 'ダイレクト(1:1)' : 'スクール空間'}`);
             } else {
                 alert('アクティブなセッションはありません。');
             }
