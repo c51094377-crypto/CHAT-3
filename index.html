@@ -92,8 +92,8 @@
 
                 <!-- Group Chat Panel -->
                 <div id="panel-group" class="space-y-3 hidden">
-                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ)</h3>
-                    <p class="text-xs text-slate-400">自由な4桁コードを入力して作成または入室できます。</p>
+                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ最大40人)</h3>
+                    <p class="text-xs text-slate-400">自由な4桁コードを入力して作成または入室できます（最大40人全員の会話がリアルタイム同期）。</p>
                     <div class="flex space-x-2">
                         <input type="text" id="group-room-input" maxlength="4" placeholder="4桁コード" class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-sm text-center tracking-widest font-bold text-white focus:outline-none focus:border-indigo-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                         <button onclick="joinGroupRoom()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-xl text-sm font-semibold transition shadow">入室/作成</button>
@@ -164,21 +164,33 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 自由入力・内側カメラリアルタイムテレビ通話対応システム
+                        ⚡ 最大40人フルメッシュ同期・内側カメラテレビ通話対応システム
                     </div>
                 </div>
             </div>
 
             <!-- Custom Original Sticker Panel -->
             <div id="sticker-panel" class="bg-slate-900 border-t border-slate-700 p-3 hidden grid grid-cols-2 sm:grid-cols-4 gap-2 shadow-2xl z-20">
-                <button onclick="sendSticker('✨ ノート完了！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">✨ ノート完了！</button>
-                <button onclick="sendSticker('📚 宿題どこ？')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">📚 宿題どこ？</button>
-                <button onclick="sendSticker('💡 ひらめいた！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">💡 ひらめいた！</button>
-                <button onclick="sendSticker('🚀 テストがんばろ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🚀 テストがんばろ</button>
-                <button onclick="sendSticker('☕ 休憩しよー')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">☕ 休憩しよー</button>
-                <button onclick="sendSticker('⭐ ありがとう！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">⭐ ありがとう！</button>
-                <button onclick="sendSticker('🤝 よろしく！')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🤝 よろしく！</button>
-                <button onclick="sendSticker('🔥 やる気MAX')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">🔥 やる気MAX</button>
+                <button onclick="sendSticker('what?')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">what?</button>
+                <button onclick="sendSticker('OK thanks')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">OK thanks</button>
+                <button onclick="sendSticker('(￣O￣;)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(￣O￣;)</button>
+                <button onclick="sendSticker('?')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">?</button>
+                <button onclick="sendSticker('NO')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">NO</button>
+                <button onclick="sendSticker('OK')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">OK</button>
+                <button onclick="sendSticker('what are you doing?')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">wht are you doing?</button>
+                <button onclick="sendSticker('See you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">See you</button>
+                <button onclick="sendSticker('thank you')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">thank you</button>
+                <button onclick="sendSticker('see you again')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">see you again</button>
+                <button onclick="sendSticker('( ・∇・)ﾉ ﾔｱ')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ・∇・)ﾉ ﾔｱ</button>
+                <button onclick="sendSticker('HELLO')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">HELLO</button>
+                <button onclick="sendSticker('^ - ^')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">^ - ^</button>
+                <button onclick="sendSticker('(๑╹ω╹๑ )')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(๑╹ω╹๑ )</button>
+                <button onclick="sendSticker('Σ('◉⌓◉’)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">Σ('◉⌓◉’)</button>
+                <button onclick="sendSticker('( ´∀｀)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ´∀｀)</button>
+                <button onclick="sendSticker('d(^_^o)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">d(^_^o)</button>
+                <button onclick="sendSticker('(￣^￣)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(￣^￣)</button>
+                <button onclick="sendSticker('(T ^ T)')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">(T ^ T)</button>
+                <button onclick="sendSticker('( ´ ▽ ` )')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-xs font-bold text-indigo-300 shadow transition">( ´ ▽ ` )</button>
             </div>
 
             <!-- Input Bar -->
@@ -232,6 +244,7 @@
         let peer = null;
         let connections = {}; 
         let incomingBuffers = {}; 
+        let activePeerIds = new Set(); // 40人全員の会話同期用ピア管理
 
         // Video Call Variables
         let localStream = null;
@@ -420,6 +433,7 @@
             stopVideoCall();
             connections = {};
             incomingBuffers = {};
+            activePeerIds.clear();
             currentRoomId = roomId;
             currentModeName = modeName;
             currentMode = modeType;
@@ -435,17 +449,23 @@
 
             const prefix = (modeType === 'private') ? 'nexus_private' : 'nexus_group';
             const hostPeerId = `${prefix}_${roomId}_host`;
-            const myId = `${prefix}_${roomId}_guest_${Math.random().toString(36).substring(2, 6)}`;
+            const uniqueId = Math.random().toString(36).substring(2, 6);
+            const myId = `${prefix}_${roomId}_user_${uniqueId}`;
 
+            // 最大40人対応のためのピア接続：ホストがいなければ自分がホスト、いればゲストとして参加しつつ最大40人のピアIDリストを相互共有
             peer = new Peer(hostPeerId, peerConfig);
 
             peer.on('open', (id) => {
-                document.getElementById('chat-room-subtitle').innerText = (modeType === 'private') ? 'ダイレクト待受中' : 'スクール空間ホスト（参加者待ち）';
-                appendSystemMessage((modeType === 'private') ? 'ダイレクト回線を開設しました。相手の接続を待っています...' : 'グループ空間を作成しました。参加者を待っています...');
+                document.getElementById('chat-room-subtitle').innerText = (modeType === 'private') ? 'ダイレクト待受中' : 'スクール空間ホスト（最大40人対応）';
+                appendSystemMessage((modeType === 'private') ? 'ダイレクト回線を開設しました。相手の接続を待っています...' : 'スクール空間（最大40人対応）を開設しました。');
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>待受中</span>';
                 
+                activePeerIds.add(id);
+
                 peer.on('connection', (conn) => {
                     setupConnection(conn, modeType);
+                    // グループ参加者の全員同期用：新メンバーに既存メンバーリストをブロードキャスト
+                    broadcastPeerList();
                 });
 
                 peer.on('call', (call) => {
@@ -458,12 +478,20 @@
                     peer.destroy();
                     
                     peer = new Peer(myId, peerConfig);
-                    peer.on('open', () => {
-                        appendSystemMessage('ルームを発見しました。接続を確立しています...');
+                    peer.on('open', (openedId) => {
+                        appendSystemMessage('スクール空間を発見しました。最大40人のネットワークに参加中...');
+                        activePeerIds.add(openedId);
+                        
                         const conn = peer.connect(hostPeerId);
                         setupConnection(conn, modeType);
 
-                        // Automatically initiate call if guest joins and wants video
+                        // グループ内の他の参加者とも全員直接接続を試みる（最大40人のフルメッシュ同期）
+                        setTimeout(() => {
+                            if (conn && conn.open) {
+                                conn.send({ type: 'request_peer_list', from: openedId });
+                            }
+                        }, 800);
+
                         setTimeout(() => {
                             if (localStream) {
                                 startCall(hostPeerId);
@@ -494,13 +522,13 @@
 
         function setupConnection(conn, modeType) {
             connections[conn.peer] = conn;
+            activePeerIds.add(conn.peer);
 
             conn.on('open', () => {
                 document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>接続済み</span>';
-                appendSystemMessage((modeType === 'private') ? 'ダイレクトセキュアP2P接続が確立されました！' : 'スクール空間への接続が確立されました！');
+                appendSystemMessage('新しいメンバーがスクール空間に参加しました');
                 updatePeerCount();
 
-                // If video is already active, call newly connected peer
                 if (isVideoActive && localStream) {
                     startCall(conn.peer);
                 }
@@ -508,13 +536,37 @@
 
             conn.on('close', () => {
                 delete connections[conn.peer];
-                document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>切断</span>';
-                appendSystemMessage('相手が退出しました');
+                activePeerIds.delete(conn.peer);
+                document.getElementById('connection-status').innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>メンバー退出</span>';
+                appendSystemMessage('メンバーが退出しました');
                 updatePeerCount();
             });
 
             conn.on('data', (packet) => {
                 handleDataPacket(conn.peer, packet, modeType);
+            });
+        }
+
+        function broadcastPeerList() {
+            const peerList = Array.from(activePeerIds);
+            if (peerList.length > 40) {
+                // 最大40人制限の適用
+                peerList.length = 40;
+            }
+            Object.keys(connections).forEach(peerId => {
+                const conn = connections[peerId];
+                if (conn && conn.open) {
+                    conn.send({ type: 'peer_list', peers: peerList });
+                }
+            });
+        }
+
+        function connectToPeers(peerList) {
+            peerList.forEach(id => {
+                if (id !== peer.id && !connections[id] && activePeerIds.size < 40) {
+                    const conn = peer.connect(id);
+                    setupConnection(conn, currentMode);
+                }
             });
         }
 
@@ -525,7 +577,6 @@
 
             if (!isVideoActive) {
                 try {
-                    // Request user inner camera (front camera)
                     localStream = await navigator.mediaDevices.getUserMedia({
                         video: { facingMode: 'user' },
                         audio: true
@@ -540,7 +591,6 @@
                     isVideoActive = true;
                     appendSystemMessage('内側カメラのテレビ通話を開始しました');
 
-                    // Call all connected peers
                     Object.keys(connections).forEach(peerId => {
                         startCall(peerId);
                     });
@@ -572,7 +622,6 @@
 
         function handleIncomingCall(call) {
             if (!localStream) {
-                // Auto-fetch local stream if receiving a call
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
                     .then((stream) => {
                         localStream = stream;
@@ -589,7 +638,7 @@
                     })
                     .catch(err => {
                         console.error(err);
-                        call.answer(); // Answer audio/video without local stream if denied
+                        call.answer();
                         setupCallEvents(call);
                     });
             } else {
@@ -639,6 +688,15 @@
         // ----------------------------------------
 
         function handleDataPacket(peerId, packet, modeType) {
+            if (packet.type === 'peer_list') {
+                connectToPeers(packet.peers);
+                return;
+            }
+            if (packet.type === 'request_peer_list') {
+                broadcastPeerList();
+                return;
+            }
+
             if (!incomingBuffers[peerId]) {
                 incomingBuffers[peerId] = {};
             }
@@ -646,7 +704,8 @@
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
                 
-                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                // 最大40人全員に会話を完全に同期・転送（ゴシップ・リレー方式）
+                if (modeType === 'group') {
                     forwardToGroupOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_start') {
@@ -658,7 +717,7 @@
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks)
                 };
-                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                if (modeType === 'group') {
                     forwardToGroupOthers(peerId, packet);
                 }
             } else if (packet.type === 'chunk_data') {
@@ -673,13 +732,20 @@
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
-                if (modeType === 'group' && peer && peer.id.includes('_host')) {
+                if (modeType === 'group') {
                     forwardToGroupOthers(peerId, packet);
                 }
             }
         }
 
+        let relayedPackets = new Set();
         function forwardToGroupOthers(excludePeerId, packet) {
+            // 重複転送防止用ID
+            const packetKey = (packet.text || packet.fileId) + (packet.timestamp || '');
+            if (relayedPackets.has(packetKey)) return;
+            relayedPackets.add(packetKey);
+            if (relayedPackets.size > 200) relayedPackets.clear();
+
             Object.keys(connections).forEach(targetId => {
                 if (targetId !== excludePeerId) {
                     const conn = connections[targetId];
@@ -691,11 +757,9 @@
         }
 
         function updatePeerCount() {
-            const count = Object.keys(connections).filter(id => connections[id].open).length;
-            document.getElementById('peer-count').innerText = `接続ピア: ${count}`;
-            if (count > 0) {
-                document.getElementById('chat-room-subtitle').innerText = `接続中 (${count}名と接続中)`;
-            }
+            const count = Object.keys(connections).filter(id => connections[id].open).length + 1;
+            document.getElementById('peer-count').innerText = `参加者: ${Math.min(count, 40)}人`;
+            document.getElementById('chat-room-subtitle').innerText = `接続中 (${Math.min(count, 40)}人と同期中)`;
         }
 
         function sendPayloadReliably(payloadObj) {
@@ -863,7 +927,7 @@
 
         function showRoomInfo() {
             if (currentRoomId) {
-                alert(`Nexus Chat セッション情報\nコード: ${currentRoomId}\nモード: ${currentMode === 'private' ? 'ダイレクト(1:1)' : 'スクール空間'}`);
+                alert(`Nexus Chat セッション情報\nコード: ${currentRoomId}\nモード: ${currentMode === 'private' ? 'ダイレクト(1:1)' : 'スクール空間 (最大40人)'}`);
             } else {
                 alert('アクティブなセッションはありません。');
             }
