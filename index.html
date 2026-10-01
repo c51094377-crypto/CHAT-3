@@ -102,12 +102,11 @@
                 <!-- Group Chat Panel -->
                 <div id="panel-group" class="space-y-3 hidden">
                     <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">スクール空間 (グループ)</h3>
-                    <button onclick="createGroupRoom()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
-                        <i class="fa-solid fa-cube"></i><span>新ルームを発行</span>
-                    </button>
+                    <p class="text-xs text-slate-400">4桁の好きなコードを決めて、新しいルームを作成または入室します。</p>
                     <div class="flex space-x-2">
                         <input type="text" id="group-room-input" maxlength="4" placeholder="4桁コード" class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-sm text-center tracking-widest font-bold text-white focus:outline-none focus:border-indigo-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        <button onclick="joinGroupRoom()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">入室</button>
+                        <button onclick="createGroupRoom()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-xl text-xs font-semibold transition shadow" title="自分で決めたコードで作成">作成</button>
+                        <button onclick="joinGroupRoom()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl text-xs font-semibold transition" title="入室">入室</button>
                     </div>
                 </div>
 
@@ -153,7 +152,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 電光掲示板アニメーションスタンプ搭載
+                        ⚡ スクール空間・マルチ中継通信システム
                     </div>
                 </div>
             </div>
@@ -339,9 +338,12 @@
         }
 
         function createGroupRoom() {
-            const random4Digits = Math.floor(1000 + Math.random() * 9000).toString();
-            document.getElementById('group-room-input').value = random4Digits;
-            initRoom('スクール空間', random4Digits);
+            const roomId = document.getElementById('group-room-input').value.trim();
+            if (roomId.length !== 4 || isNaN(roomId)) {
+                alert('作成する4桁の数字コードを入力してください。');
+                return;
+            }
+            initRoom('スクール空間', roomId);
         }
 
         function joinGroupRoom() {
@@ -489,9 +491,7 @@
 
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isMarquee);
-                if (peer && peer.id.includes('_host')) {
-                    forwardToOthers(peerId, packet);
-                }
+                forwardToOthers(peerId, packet);
             } else if (packet.type === 'chunk_start') {
                 incomingBuffers[peerId][packet.fileId] = {
                     senderName: packet.senderName,
@@ -501,9 +501,7 @@
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks)
                 };
-                if (peer && peer.id.includes('_host')) {
-                    forwardToOthers(peerId, packet);
-                }
+                forwardToOthers(peerId, packet);
             } else if (packet.type === 'chunk_data') {
                 const fileBuf = incomingBuffers[peerId][packet.fileId];
                 if (fileBuf && !fileBuf.chunks[packet.chunkIndex]) {
@@ -516,9 +514,7 @@
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
-                if (peer && peer.id.includes('_host')) {
-                    forwardToOthers(peerId, packet);
-                }
+                forwardToOthers(peerId, packet);
             }
         }
 
