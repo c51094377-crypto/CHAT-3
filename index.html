@@ -137,6 +137,10 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <!-- Audio Call Button -->
+                    <button onclick="toggleAudioCall()" id="btn-audio-call" class="bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow" title="音声通話を開始">
+                        <i class="fa-solid fa-phone"></i><span class="hidden sm:inline">音声通話</span>
+                    </button>
                     <!-- Video Call Trigger Button -->
                     <button onclick="toggleVideoCall()" id="btn-video-call" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow" title="テレビ通話を開始">
                         <i class="fa-solid fa-video"></i><span class="hidden sm:inline">テレビ通話</span>
@@ -158,17 +162,20 @@
                     </div>
                 </div>
                 <!-- Video Control Buttons Toolbar -->
-                <div class="flex items-center justify-center space-x-3 py-1">
-                    <button onclick="toggleMute()" id="btn-mute" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
+                <div class="flex items-center justify-center space-x-2 py-1 flex-wrap gap-y-2">
+                    <button onclick="toggleMute()" id="btn-mute" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
                         <i class="fa-solid fa-microphone"></i><span>ミュート</span>
                     </button>
-                    <button onclick="toggleCamera()" id="btn-cam" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
+                    <button onclick="toggleCamera()" id="btn-cam" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
                         <i class="fa-solid fa-video-slash"></i><span>カメラOFF</span>
                     </button>
-                    <button onclick="switchCamera()" id="btn-switch-cam" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
+                    <button onclick="switchCamera()" id="btn-switch-cam" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
                         <i class="fa-solid fa-camera-rotate"></i><span>外側カメラ</span>
                     </button>
-                    <button onclick="toggleVideoCall()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow">
+                    <button onclick="toggleScreenShare()" id="btn-screen" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow">
+                        <i class="fa-solid fa-desktop"></i><span>画面共有</span>
+                    </button>
+                    <button onclick="stopAllCalls()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow">
                         <i class="fa-solid fa-xmark"></i><span>通話終了</span>
                     </button>
                 </div>
@@ -178,7 +185,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 最大40人フルメッシュ同期・カメラ切替・ミュート対応システム
+                        ⚡ 音声通話・画面共有・最大40人フルメッシュ同期対応システム
                     </div>
                 </div>
             </div>
@@ -260,10 +267,12 @@
         let incomingBuffers = {}; 
         let activePeerIds = new Set(); // 40人全員の会話同期用ピア管理
 
-        // Video Call Variables
+        // Video Call & Audio/Screen Variables
         let localStream = null;
         let activeCall = null;
         let isVideoActive = false;
+        let isAudioOnlyActive = false;
+        let isScreenSharing = false;
         let isMuted = false;
         let isCamOff = false;
         let useFacingMode = 'user'; // 'user' (内側) または 'environment' (外側)
@@ -453,7 +462,7 @@
                 }
                 peer = null;
             }
-            stopVideoCall();
+            stopAllCalls();
             connections = {};
             incomingBuffers = {};
             activePeerIds.clear();
@@ -549,11 +558,10 @@
                 appendSystemMessage('新しいメンバーがスクール空間に参加しました');
                 updatePeerCount();
 
-                if (isVideoActive && localStream) {
+                if ((isVideoActive || isAudioOnlyActive) && localStream) {
                     startCall(conn.peer);
                 }
                 
-                // 接続確立時に既読情報を相手に通知する
                 conn.send({ type: 'read_receipt', reader: myName });
             });
 
@@ -592,40 +600,144 @@
             });
         }
 
-        // --- Video Call Functions ---
-        async function toggleVideoCall() {
-            const videoContainer = document.getElementById('video-container');
-            const btnVideo = document.getElementById('btn-video-call');
+        // --- Call & Screen Share Functions ---
+        async function toggleAudioCall() {
+            if (isAudioOnlyActive) {
+                stopAllCalls();
+                return;
+            }
+            if (isVideoActive) {
+                stopAllCalls();
+            }
 
-            if (!isVideoActive) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: false,
+                    audio: true
+                });
+
+                const videoContainer = document.getElementById('video-container');
+                videoContainer.classList.remove('hidden');
+
+                // 音声通話時は自分のカメラプレビューを非表示にする、またはプレビュー枠を隠す
+                document.getElementById('local-video').parentElement.classList.add('hidden');
+                document.getElementById('remote-video-label').innerText = '音声通話相手 (接続中)';
+
+                const btnAudio = document.getElementById('btn-audio-call');
+                btnAudio.className = "bg-red-600 hover:bg-red-500 text-white border border-red-500 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+                btnAudio.innerHTML = '<i class="fa-solid fa-phone-slash"></i><span class="hidden sm:inline">通話終了</span>';
+
+                isAudioOnlyActive = true;
+                isMuted = false;
+                updateVideoControlsUI();
+                appendSystemMessage('音声通話を開始しました');
+
+                Object.keys(connections).forEach(peerId => {
+                    startCall(peerId);
+                });
+            } catch (err) {
+                console.error(err);
+                alert('マイクへのアクセスが許可されていないか、利用できません。');
+            }
+        }
+
+        async function toggleVideoCall() {
+            if (isVideoActive) {
+                stopAllCalls();
+                return;
+            }
+            if (isAudioOnlyActive) {
+                stopAllCalls();
+            }
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: useFacingMode },
+                    audio: true
+                });
+
+                document.getElementById('local-video').parentElement.classList.remove('hidden');
+                const localVideoEl = document.getElementById('local-video');
+                localVideoEl.srcObject = localStream;
+
+                const videoContainer = document.getElementById('video-container');
+                videoContainer.classList.remove('hidden');
+
+                const btnVideo = document.getElementById('btn-video-call');
+                btnVideo.className = "bg-red-600 hover:bg-red-500 text-white border border-red-500 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+                btnVideo.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden sm:inline">通話終了</span>';
+                
+                isVideoActive = true;
+                isMuted = false;
+                isCamOff = false;
+                updateVideoControlsUI();
+                appendSystemMessage('テレビ通話を開始しました');
+
+                Object.keys(connections).forEach(peerId => {
+                    startCall(peerId);
+                });
+            } catch (err) {
+                console.error(err);
+                alert('カメラまたはマイクへのアクセスが許可されていないか、利用できません。');
+            }
+        }
+
+        async function toggleScreenShare() {
+            if (!isScreenSharing) {
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: useFacingMode },
-                        audio: true
-                    });
+                    const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                    const screenTrack = screenStream.getVideoTracks()[0];
+
+                    screenTrack.onended = () => {
+                        stopScreenShare();
+                    };
+
+                    if (localStream) {
+                        const videoSender = activeCall && activeCall.peerConnection ? 
+                            activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video') : null;
+                        if (videoSender) {
+                            videoSender.replaceTrack(screenTrack);
+                        }
+                    }
 
                     const localVideoEl = document.getElementById('local-video');
-                    localVideoEl.srcObject = localStream;
+                    localVideoEl.srcObject = screenStream;
+                    document.getElementById('local-video').parentElement.classList.remove('hidden');
+                    document.getElementById('local-video-label').innerText = 'あなた (画面共有中)';
 
-                    videoContainer.classList.remove('hidden');
-                    btnVideo.className = "bg-red-600 hover:bg-red-500 text-white border border-red-500 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
-                    btnVideo.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden sm:inline">通話終了</span>';
-                    isVideoActive = true;
-                    isMuted = false;
-                    isCamOff = false;
-                    updateVideoControlsUI();
-                    appendSystemMessage('テレビ通話を開始しました');
-
-                    Object.keys(connections).forEach(peerId => {
-                        startCall(peerId);
-                    });
+                    isScreenSharing = true;
+                    const btnScreen = document.getElementById('btn-screen');
+                    btnScreen.className = "bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold border border-indigo-500 transition flex items-center space-x-1.5 shadow";
+                    btnScreen.innerHTML = '<i class="fa-solid fa-desktop"></i><span>共有停止</span>';
+                    appendSystemMessage('画面共有を開始しました');
                 } catch (err) {
                     console.error(err);
-                    alert('カメラまたはマイクへのアクセスが許可されていないか、利用できません。');
+                    alert('画面共有の開始に失敗しました。');
                 }
             } else {
-                stopVideoCall();
+                stopScreenShare();
             }
+        }
+
+        function stopScreenShare() {
+            isScreenSharing = false;
+            const btnScreen = document.getElementById('btn-screen');
+            btnScreen.className = "bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow";
+            btnScreen.innerHTML = '<i class="fa-solid fa-desktop"></i><span>画面共有</span>';
+
+            if (isVideoActive && localStream) {
+                const localVideoEl = document.getElementById('local-video');
+                localVideoEl.srcObject = localStream;
+                document.getElementById('local-video-label').innerText = useFacingMode === 'user' ? 'あなた (内側カメラ)' : 'あなた (外側カメラ)';
+
+                if (activeCall && activeCall.peerConnection) {
+                    const videoSender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (videoSender && localStream.getVideoTracks().length > 0) {
+                        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+                    }
+                }
+            }
+            appendSystemMessage('画面共有を終了しました');
         }
 
         function toggleMute() {
@@ -640,7 +752,7 @@
         }
 
         function toggleCamera() {
-            if (!localStream) return;
+            if (!localStream || isAudioOnlyActive) return;
             const videoTracks = localStream.getVideoTracks();
             if (videoTracks.length > 0) {
                 isCamOff = !isCamOff;
@@ -651,6 +763,7 @@
         }
 
         async function switchCamera() {
+            if (isAudioOnlyActive || isScreenSharing) return;
             useFacingMode = (useFacingMode === 'user') ? 'environment' : 'user';
             const localVideoEl = document.getElementById('local-video');
             if (useFacingMode === 'environment') {
@@ -672,7 +785,6 @@
                 });
                 localVideoEl.srcObject = localStream;
 
-                // 新しいストリームのビデオトラックを既存の通話相手に置き換える
                 if (activeCall && activeCall.peerConnection) {
                     const videoSender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
                     if (videoSender) {
@@ -689,19 +801,19 @@
         function updateVideoControlsUI() {
             const btnMute = document.getElementById('btn-mute');
             if (isMuted) {
-                btnMute.className = "bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold border border-red-500 transition flex items-center space-x-1.5 shadow";
+                btnMute.className = "bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-bold border border-red-500 transition flex items-center space-x-1.5 shadow";
                 btnMute.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>ミュート中</span>';
             } else {
-                btnMute.className = "bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow";
+                btnMute.className = "bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow";
                 btnMute.innerHTML = '<i class="fa-solid fa-microphone"></i><span>ミュート</span>';
             }
 
             const btnCam = document.getElementById('btn-cam');
             if (isCamOff) {
-                btnCam.className = "bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold border border-red-500 transition flex items-center space-x-1.5 shadow";
+                btnCam.className = "bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-bold border border-red-500 transition flex items-center space-x-1.5 shadow";
                 btnCam.innerHTML = '<i class="fa-solid fa-video"></i><span>カメラON</span>';
             } else {
-                btnCam.className = "bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow";
+                btnCam.className = "bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold border border-slate-600 transition flex items-center space-x-1.5 shadow";
                 btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i><span>カメラOFF</span>';
             }
         }
@@ -728,6 +840,7 @@
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: useFacingMode }, audio: true })
                     .then((stream) => {
                         localStream = stream;
+                        document.getElementById('local-video').parentElement.classList.remove('hidden');
                         document.getElementById('local-video').srcObject = localStream;
                         document.getElementById('video-container').classList.remove('hidden');
                         isVideoActive = true;
@@ -751,7 +864,6 @@
                 call.answer(localStream);
                 setupCallEvents(call);
                 document.getElementById('video-container').classList.remove('hidden');
-                isVideoActive = true;
             }
         }
 
@@ -761,7 +873,7 @@
                 const remoteVideoEl = document.getElementById('remote-video');
                 remoteVideoEl.srcObject = remoteStream;
                 document.getElementById('remote-video-label').innerText = '相手の映像 (接続中)';
-                appendSystemMessage('相手のテレビ通話映像を受信しました');
+                appendSystemMessage('相手からの通話音声・映像を受信しました');
             });
             call.on('close', () => {
                 document.getElementById('remote-video').srcObject = null;
@@ -769,7 +881,7 @@
             });
         }
 
-        function stopVideoCall() {
+        function stopAllCalls() {
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
@@ -785,13 +897,22 @@
             if (remoteVideoEl) remoteVideoEl.srcObject = null;
 
             document.getElementById('video-container').classList.add('hidden');
+            
+            // ボタンを初期状態に戻す
             const btnVideo = document.getElementById('btn-video-call');
             btnVideo.className = "bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
             btnVideo.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden sm:inline">テレビ通話</span>';
+
+            const btnAudio = document.getElementById('btn-audio-call');
+            btnAudio.className = "bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
+            btnAudio.innerHTML = '<i class="fa-solid fa-phone"></i><span class="hidden sm:inline">音声通話</span>';
+
             isVideoActive = false;
+            isAudioOnlyActive = false;
+            isScreenSharing = false;
             isMuted = false;
             isCamOff = false;
-            appendSystemMessage('テレビ通話を終了しました');
+            appendSystemMessage('通話を終了しました');
         }
         // ----------------------------------------
 
@@ -805,7 +926,6 @@
                 return;
             }
             if (packet.type === 'read_receipt') {
-                // 既読通知を受信したら、自分が送信したメッセージの既読表示を更新する
                 markAllMyMessagesAsRead();
                 if (modeType === 'group') {
                     forwardToGroupOthers(peerId, packet);
@@ -819,8 +939,6 @@
 
             if (packet.type === 'chat') {
                 appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
-                
-                // メッセージを受信した時点で既読を送信側に返す
                 sendPayloadReliably({ type: 'read_receipt', reader: myName });
 
                 if (modeType === 'group') {
@@ -859,10 +977,9 @@
 
         let relayedPackets = new Set();
         function forwardToGroupOthers(excludePeerId, packet) {
-            // 重複判定にメッセージ本文だけでなくタイムスタンプと送信者名を含めることで、同じ内容でも別発言なら正しく転送しつつ、同一パケットの重複ループを防ぐ
             const packetKey = (packet.senderName || '') + (packet.text || packet.fileId || packet.type) + (packet.timestamp || '');
             if (packet.type === 'read_receipt') {
-                // 既読の重複転送抑制キー
+                // pass
             } else {
                 if (relayedPackets.has(packetKey)) return;
                 relayedPackets.add(packetKey);
@@ -902,7 +1019,6 @@
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             appendMessage(myName, myAvatar, text, true, timestamp, null, false);
             
-            // 重複転送防止フィルターに自分の送信メッセージのキーをあらかじめ登録しておく
             const packetKey = myName + text + timestamp;
             relayedPackets.add(packetKey);
 
@@ -923,7 +1039,6 @@
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true);
 
-            // 重複転送防止フィルターに自分のスタンプ送信のキーをあらかじめ登録しておく
             const packetKey = myName + stickerText + timestamp;
             relayedPackets.add(packetKey);
 
@@ -949,8 +1064,6 @@
                 appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false);
 
                 const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
-                
-                // 重複転送防止フィルターに画像のファイルIDをあらかじめ登録しておく
                 relayedPackets.add(myName + fileId + timestamp);
 
                 const CHUNK_SIZE = 16 * 1024;
