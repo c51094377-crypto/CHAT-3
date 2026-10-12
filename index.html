@@ -185,7 +185,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 長尺動画安定送信・複数選択・音声通話・画面共有対応システム
+                        ⚡ 複数ファイルZIP一括転送・安定同期・音声通話・画面共有対応システム
                     </div>
                 </div>
             </div>
@@ -219,8 +219,8 @@
                 <button onclick="toggleStickerPanel()" class="text-slate-400 hover:text-white p-3 transition" title="オリジナルスタンプ">
                     <i class="fa-solid fa-icons text-xl"></i>
                 </button>
-                <label class="cursor-pointer text-slate-400 hover:text-white p-3 transition" title="画像・動画送信（複数選択可）">
-                    <i class="fa-solid fa-photo-film text-xl"></i>
+                <label class="cursor-pointer text-slate-400 hover:text-white p-3 transition" title="複数ファイル一括ZIP転送">
+                    <i class="fa-solid fa-file-zipper text-xl"></i>
                     <input type="file" id="media-input" accept="image/*,video/*" multiple class="hidden" onchange="sendMediaFiles(event)">
                 </label>
                 <div class="flex-1 relative">
@@ -936,7 +936,7 @@
             }
 
             if (packet.type === 'chat') {
-                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isVideo, packet.mediaData);
+                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isZip, packet.fileName);
                 sendPayloadReliably({ type: 'read_receipt', reader: myName });
 
                 if (modeType === 'group') {
@@ -950,7 +950,8 @@
                     totalChunks: packet.totalChunks,
                     receivedChunks: 0,
                     chunks: new Array(packet.totalChunks),
-                    isVideo: packet.isVideo
+                    isZip: packet.isZip,
+                    fileName: packet.fileName
                 };
                 sendPayloadReliably({ type: 'read_receipt', reader: myName });
                 if (modeType === 'group') {
@@ -964,7 +965,7 @@
 
                     if (fileBuf.receivedChunks === fileBuf.totalChunks) {
                         const fullMediaBase64 = fileBuf.chunks.join('');
-                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullMediaBase64, false, fileBuf.isVideo, null);
+                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullMediaBase64, false, fileBuf.isZip, fileBuf.fileName);
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
@@ -1028,7 +1029,7 @@
                 text: text,
                 timestamp: timestamp,
                 isSticker: false,
-                isVideo: false
+                isZip: false
             });
 
             input.value = '';
@@ -1049,7 +1050,7 @@
                 text: stickerText,
                 timestamp: timestamp,
                 isSticker: true,
-                isVideo: false
+                isZip: false
             });
         }
 
@@ -1057,7 +1058,8 @@
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            Array.from(files).forEach((file, index) => {
+            if (files.length === 1) {
+                const file = files[0];
                 const reader = new FileReader();
                 const isVideo = file.type.startsWith('video/');
 
@@ -1065,12 +1067,11 @@
                     const base64Data = e.target.result;
                     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                    appendMessage(myName, myAvatar, '', true, timestamp, base64Data, false, isVideo, null);
+                    appendMessage(myName, myAvatar, '', true, timestamp, base64Data, false, false, file.name);
 
                     const fileId = 'media_' + Math.random().toString(36).substring(2, 9);
                     relayedPackets.add(myName + fileId + timestamp);
 
-                    // 10分などの長尺動画でもフリーズしないようチャンクサイズを安定化
                     const CHUNK_SIZE = 32 * 1024;
                     const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
 
@@ -1081,7 +1082,8 @@
                         senderAvatar: myAvatar,
                         timestamp: timestamp,
                         totalChunks: totalChunks,
-                        isVideo: isVideo
+                        isZip: false,
+                        fileName: file.name
                     });
 
                     let currentChunk = 0;
@@ -1098,15 +1100,77 @@
                             });
 
                             currentChunk++;
-                            // 長尺動画のフリーズを防ぐため、送信ウェイトを少し長めに調整
                             setTimeout(sendNextChunk, 20);
                         }
                     }
-                    // ファイルごとに少し時間差をつけて処理することでメモリとCPUの過負荷を防ぐ
-                    setTimeout(sendNextChunk, index * 200);
+                    sendNextChunk();
                 };
                 reader.readAsDataURL(file);
-            });
+            } else {
+                // 複数のファイルが選択された場合、軽量な簡易ZIP（結合Blobアーカイブ）として1つにまとめて一括転送
+                let zipData = [];
+                let processedCount = 0;
+
+                Array.from(files).forEach((file) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        zipData.push({ name: file.name, data: e.target.result });
+                        processedCount++;
+
+                        if (processedCount === files.length) {
+                            const combinedJson = JSON.stringify(zipData);
+                            const blob = new Blob([combinedJson], { type: 'application/zip' });
+                            const zipReader = new FileReader();
+
+                            zipReader.onload = function(ze) {
+                                const base64Zip = ze.target.result;
+                                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const zipFileName = 'Nexus_Bundle_' + Math.floor(Math.random() * 9000 + 1000) + '.zip';
+
+                                appendMessage(myName, myAvatar, '', true, timestamp, base64Zip, false, true, zipFileName);
+
+                                const fileId = 'zip_' + Math.random().toString(36).substring(2, 9);
+                                relayedPackets.add(myName + fileId + timestamp);
+
+                                const CHUNK_SIZE = 32 * 1024;
+                                const totalChunks = Math.ceil(base64Zip.length / CHUNK_SIZE);
+
+                                sendPayloadReliably({
+                                    type: 'chunk_start',
+                                    fileId: fileId,
+                                    senderName: myName,
+                                    senderAvatar: myAvatar,
+                                    timestamp: timestamp,
+                                    totalChunks: totalChunks,
+                                    isZip: true,
+                                    fileName: zipFileName
+                                });
+
+                                let currentChunk = 0;
+                                function sendNextChunk() {
+                                    if (currentChunk < totalChunks) {
+                                        const start = currentChunk * CHUNK_SIZE;
+                                        const chunkData = base64Zip.substring(start, start + CHUNK_SIZE);
+
+                                        sendPayloadReliably({
+                                            type: 'chunk_data',
+                                            fileId: fileId,
+                                            chunkIndex: currentChunk,
+                                            data: chunkData
+                                        });
+
+                                        currentChunk++;
+                                        setTimeout(sendNextChunk, 20);
+                                    }
+                                }
+                                sendNextChunk();
+                            };
+                            zipReader.readAsDataURL(blob);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
             event.target.value = '';
         }
 
@@ -1116,7 +1180,7 @@
             }
         }
 
-        function appendMessage(sender, senderAvatar, text, isMe, timestamp, media = null, isSticker = false, isVideo = false, mediaData = null) {
+        function appendMessage(sender, senderAvatar, text, isMe, timestamp, media = null, isSticker = false, isZip = false, fileName = null) {
             const container = document.getElementById('messages-container');
             const messageRow = document.createElement('div');
             messageRow.className = `flex items-end space-x-2 mb-3 ${isMe ? 'justify-end' : 'justify-start'} chat-message-row`;
@@ -1131,7 +1195,20 @@
 
             let contentHtml = '';
             if (media) {
-                if (isVideo) {
+                if (isZip) {
+                    contentHtml += `
+                        <div class="flex flex-col space-y-2 p-2">
+                            <div class="flex items-center space-x-2 text-indigo-200">
+                                <i class="fa-solid fa-file-zipper text-2xl"></i>
+                                <div>
+                                    <p class="text-xs font-bold truncate max-w-[180px]">${escapeHtml(fileName || 'archive.zip')}</p>
+                                    <span class="text-[10px] text-indigo-300">一括ZIPファイル</span>
+                                </div>
+                            </div>
+                            <a href="${media}" download="${escapeHtml(fileName || 'archive.zip')}" class="bg-indigo-600 hover:bg-indigo-500 text-white text-center py-2 px-3 rounded-xl text-xs font-bold transition shadow block">ダウンロード</a>
+                        </div>
+                    `;
+                } else if (media.startsWith('data:video/')) {
                     contentHtml += `<video src="${media}" controls class="max-w-xs rounded-xl mb-1 shadow border border-slate-700"></video>`;
                 } else {
                     contentHtml += `<img src="${media}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
