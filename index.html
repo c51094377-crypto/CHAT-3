@@ -185,7 +185,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 画像複数選択・動画送信・音声通話・画面共有対応システム
+                        ⚡ 長尺動画安定送信・複数選択・音声通話・画面共有対応システム
                     </div>
                 </div>
             </div>
@@ -1057,8 +1057,7 @@
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            // 複数選択されたファイル（画像・動画）を順番に処理して送信
-            Array.from(files).forEach(file => {
+            Array.from(files).forEach((file, index) => {
                 const reader = new FileReader();
                 const isVideo = file.type.startsWith('video/');
 
@@ -1071,7 +1070,8 @@
                     const fileId = 'media_' + Math.random().toString(36).substring(2, 9);
                     relayedPackets.add(myName + fileId + timestamp);
 
-                    const CHUNK_SIZE = 16 * 1024;
+                    // 10分などの長尺動画でもフリーズしないようチャンクサイズを安定化
+                    const CHUNK_SIZE = 32 * 1024;
                     const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
 
                     sendPayloadReliably({
@@ -1098,10 +1098,12 @@
                             });
 
                             currentChunk++;
-                            setTimeout(sendNextChunk, 10);
+                            // 長尺動画のフリーズを防ぐため、送信ウェイトを少し長めに調整
+                            setTimeout(sendNextChunk, 20);
                         }
                     }
-                    sendNextChunk();
+                    // ファイルごとに少し時間差をつけて処理することでメモリとCPUの過負荷を防ぐ
+                    setTimeout(sendNextChunk, index * 200);
                 };
                 reader.readAsDataURL(file);
             });
