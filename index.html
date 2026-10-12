@@ -185,7 +185,7 @@
             <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
                 <div class="text-center my-6">
                     <div class="inline-block bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-4 py-2.5 rounded-xl shadow">
-                        ⚡ 音声通話・画面共有・最大40人フルメッシュ同期対応システム
+                        ⚡ 画像複数選択・動画送信・音声通話・画面共有対応システム
                     </div>
                 </div>
             </div>
@@ -219,9 +219,9 @@
                 <button onclick="toggleStickerPanel()" class="text-slate-400 hover:text-white p-3 transition" title="オリジナルスタンプ">
                     <i class="fa-solid fa-icons text-xl"></i>
                 </button>
-                <label class="cursor-pointer text-slate-400 hover:text-white p-3 transition" title="画像送信">
-                    <i class="fa-solid fa-image text-xl"></i>
-                    <input type="file" id="image-input" accept="image/*" class="hidden" onchange="sendImage(event)">
+                <label class="cursor-pointer text-slate-400 hover:text-white p-3 transition" title="画像・動画送信（複数選択可）">
+                    <i class="fa-solid fa-photo-film text-xl"></i>
+                    <input type="file" id="media-input" accept="image/*,video/*" multiple class="hidden" onchange="sendMediaFiles(event)">
                 </label>
                 <div class="flex-1 relative">
                     <input type="text" id="message-input" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)" class="w-full bg-slate-800 border border-slate-600 text-white rounded-full px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
@@ -619,7 +619,6 @@
                 const videoContainer = document.getElementById('video-container');
                 videoContainer.classList.remove('hidden');
 
-                // 音声通話時は自分のカメラプレビューを非表示にする、またはプレビュー枠を隠す
                 document.getElementById('local-video').parentElement.classList.add('hidden');
                 document.getElementById('remote-video-label').innerText = '音声通話相手 (接続中)';
 
@@ -898,7 +897,6 @@
 
             document.getElementById('video-container').classList.add('hidden');
             
-            // ボタンを初期状態に戻す
             const btnVideo = document.getElementById('btn-video-call');
             btnVideo.className = "bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow";
             btnVideo.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden sm:inline">テレビ通話</span>';
@@ -938,7 +936,7 @@
             }
 
             if (packet.type === 'chat') {
-                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker);
+                appendMessage(packet.senderName, packet.senderAvatar, packet.text, false, packet.timestamp, null, packet.isSticker, packet.isVideo, packet.mediaData);
                 sendPayloadReliably({ type: 'read_receipt', reader: myName });
 
                 if (modeType === 'group') {
@@ -951,7 +949,8 @@
                     timestamp: packet.timestamp,
                     totalChunks: packet.totalChunks,
                     receivedChunks: 0,
-                    chunks: new Array(packet.totalChunks)
+                    chunks: new Array(packet.totalChunks),
+                    isVideo: packet.isVideo
                 };
                 sendPayloadReliably({ type: 'read_receipt', reader: myName });
                 if (modeType === 'group') {
@@ -964,8 +963,8 @@
                     fileBuf.receivedChunks++;
 
                     if (fileBuf.receivedChunks === fileBuf.totalChunks) {
-                        const fullImageBase64 = fileBuf.chunks.join('');
-                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullImageBase64, false);
+                        const fullMediaBase64 = fileBuf.chunks.join('');
+                        appendMessage(fileBuf.senderName, fileBuf.senderAvatar, '', false, fileBuf.timestamp, fullMediaBase64, false, fileBuf.isVideo, null);
                         delete incomingBuffers[peerId][packet.fileId];
                     }
                 }
@@ -1017,7 +1016,7 @@
             if (!text) return;
 
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, text, true, timestamp, null, false);
+            appendMessage(myName, myAvatar, text, true, timestamp, null, false, false, null);
             
             const packetKey = myName + text + timestamp;
             relayedPackets.add(packetKey);
@@ -1028,7 +1027,8 @@
                 senderAvatar: myAvatar,
                 text: text,
                 timestamp: timestamp,
-                isSticker: false
+                isSticker: false,
+                isVideo: false
             });
 
             input.value = '';
@@ -1037,7 +1037,7 @@
         function sendSticker(stickerText) {
             toggleStickerPanel();
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true);
+            appendMessage(myName, myAvatar, stickerText, true, timestamp, null, true, false, null);
 
             const packetKey = myName + stickerText + timestamp;
             relayedPackets.add(packetKey);
@@ -1048,56 +1048,64 @@
                 senderAvatar: myAvatar,
                 text: stickerText,
                 timestamp: timestamp,
-                isSticker: true
+                isSticker: true,
+                isVideo: false
             });
         }
 
-        function sendImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function sendMediaFiles(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // 複数選択されたファイル（画像・動画）を順番に処理して送信
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                const isVideo = file.type.startsWith('video/');
 
-                appendMessage(myName, myAvatar, '', true, timestamp, base64Image, false);
+                reader.onload = function(e) {
+                    const base64Data = e.target.result;
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                const fileId = 'img_' + Math.random().toString(36).substring(2, 9);
-                relayedPackets.add(myName + fileId + timestamp);
+                    appendMessage(myName, myAvatar, '', true, timestamp, base64Data, false, isVideo, null);
 
-                const CHUNK_SIZE = 16 * 1024;
-                const totalChunks = Math.ceil(base64Image.length / CHUNK_SIZE);
+                    const fileId = 'media_' + Math.random().toString(36).substring(2, 9);
+                    relayedPackets.add(myName + fileId + timestamp);
 
-                sendPayloadReliably({
-                    type: 'chunk_start',
-                    fileId: fileId,
-                    senderName: myName,
-                    senderAvatar: myAvatar,
-                    timestamp: timestamp,
-                    totalChunks: totalChunks
-                });
+                    const CHUNK_SIZE = 16 * 1024;
+                    const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
 
-                let currentChunk = 0;
-                function sendNextChunk() {
-                    if (currentChunk < totalChunks) {
-                        const start = currentChunk * CHUNK_SIZE;
-                        const chunkData = base64Image.substring(start, start + CHUNK_SIZE);
+                    sendPayloadReliably({
+                        type: 'chunk_start',
+                        fileId: fileId,
+                        senderName: myName,
+                        senderAvatar: myAvatar,
+                        timestamp: timestamp,
+                        totalChunks: totalChunks,
+                        isVideo: isVideo
+                    });
 
-                        sendPayloadReliably({
-                            type: 'chunk_data',
-                            fileId: fileId,
-                            chunkIndex: currentChunk,
-                            data: chunkData
-                        });
+                    let currentChunk = 0;
+                    function sendNextChunk() {
+                        if (currentChunk < totalChunks) {
+                            const start = currentChunk * CHUNK_SIZE;
+                            const chunkData = base64Data.substring(start, start + CHUNK_SIZE);
 
-                        currentChunk++;
-                        setTimeout(sendNextChunk, 10);
+                            sendPayloadReliably({
+                                type: 'chunk_data',
+                                fileId: fileId,
+                                chunkIndex: currentChunk,
+                                data: chunkData
+                            });
+
+                            currentChunk++;
+                            setTimeout(sendNextChunk, 10);
+                        }
                     }
-                }
-                sendNextChunk();
-            };
-            reader.readAsDataURL(file);
+                    sendNextChunk();
+                };
+                reader.readAsDataURL(file);
+            });
+            event.target.value = '';
         }
 
         function handleKeyPress(e) {
@@ -1106,7 +1114,7 @@
             }
         }
 
-        function appendMessage(sender, senderAvatar, text, isMe, timestamp, image = null, isSticker = false) {
+        function appendMessage(sender, senderAvatar, text, isMe, timestamp, media = null, isSticker = false, isVideo = false, mediaData = null) {
             const container = document.getElementById('messages-container');
             const messageRow = document.createElement('div');
             messageRow.className = `flex items-end space-x-2 mb-3 ${isMe ? 'justify-end' : 'justify-start'} chat-message-row`;
@@ -1120,8 +1128,12 @@
             }
 
             let contentHtml = '';
-            if (image) {
-                contentHtml += `<img src="${image}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
+            if (media) {
+                if (isVideo) {
+                    contentHtml += `<video src="${media}" controls class="max-w-xs rounded-xl mb-1 shadow border border-slate-700"></video>`;
+                } else {
+                    contentHtml += `<img src="${media}" class="max-w-xs rounded-xl mb-1 shadow border border-slate-700">`;
+                }
             }
             if (text) {
                 if (isSticker) {
